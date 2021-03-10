@@ -1,7 +1,10 @@
+using BlogAPI.Database;
+using BlogAPI.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -28,9 +31,32 @@ namespace BlogAPI
         {
 
             services.AddControllers();
+            services.AddDbContext<UserContext>();
+            services.AddScoped<UserService>();
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "BlogAPI", Version = "v1" });
+
+                c.AddSecurityDefinition("Basic", new OpenApiSecurityScheme
+                {
+                    Name = "Basic",
+                    Description = "Please enter your username and password",
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "basic", //This is were it was not working for me. I was using uppercase B
+                    In = ParameterLocation.Header
+                });
+
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Basic" }
+                        }, new List<string>()
+                    }
+                });
             });
         }
 

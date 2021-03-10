@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using BlogAPI.Attributes;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -24,6 +25,7 @@ namespace BlogAPI.Controllers
         }
 
         [HttpGet]
+        [Auth(Role.User)]
         public IEnumerable<WeatherForecast> Get()
         {
             var rng = new Random();
