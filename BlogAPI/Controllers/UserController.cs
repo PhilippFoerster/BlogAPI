@@ -1,10 +1,6 @@
-﻿using BlogAPI.Database;
-using BlogAPI.Models;
+﻿using BlogAPI.Models;
 using BlogAPI.Services;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace BlogAPI.Controllers

@@ -12,7 +12,7 @@ namespace BlogAPI.Attributes
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
     public class Auth : Attribute, IAsyncActionFilter
     {
-        private Role[] roles;
+        private readonly Role[] roles;
         public Auth(params Role[] roles)
         {
             this.roles = roles;

@@ -31,8 +31,9 @@ namespace BlogAPI
         {
 
             services.AddControllers();
-            services.AddDbContext<UserContext>();
+            services.AddDbContext<BlogContext>();
             services.AddScoped<UserService>();
+            services.AddScoped<ArticleService>();
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "BlogAPI", Version = "v1" });

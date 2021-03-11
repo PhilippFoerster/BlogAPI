@@ -13,11 +13,11 @@ namespace BlogAPI.Services
 {
     public class UserService
     {
-        UserContext userContext;
+        private readonly BlogContext blogContext;
 
-        public UserService(UserContext userContext)
+        public UserService(BlogContext blogContext)
         {
-            this.userContext = userContext;
+            this.blogContext = blogContext;
         }
 
         public bool IsAuthorized(HttpContext context, Role[] roles)
@@ -25,19 +25,19 @@ namespace BlogAPI.Services
             string header = context.Request.Headers["Authorization"];
             if (header != null && header.StartsWith("Basic"))
             {
-                string encoded = header.Substring(6);
+                string encoded = header[6..];
                 string userPass = Encoding.UTF8.GetString(Convert.FromBase64String(encoded));
                 var split = userPass.Split(":");
-                if (split.Length != 1)
+                if (split.Length != 2)
                     return false;
                 string username = split[0];
                 string password = split[1];
 
-                var user = userContext.Users.FirstOrDefault(x => x.Username == username);
-                if (user is null || !roles.Contains(user.Role))
+                var user = blogContext.Users.FirstOrDefault(x => x.Username == username || x.Mail == username);
+                if (user is null || !roles.Contains(user.Role) && user.Role != Role.Admin)
                     return false;
                 var hasher = new PasswordHasher<string>();
-                var verification = hasher.VerifyHashedPassword(username, user.Password, password);
+                var verification = hasher.VerifyHashedPassword(user.Username, user.Password, password);
                 return verification == PasswordVerificationResult.Success;
             }
             return false;
@@ -47,16 +47,20 @@ namespace BlogAPI.Services
         {
             var hasher = new PasswordHasher<string>();
             user.Password = hasher.HashPassword(user.Username, user.Password);
-            userContext.Users.Add(user);
+            blogContext.Users.Add(user);
             try
             {
-                await userContext.SaveChangesAsync();
+                await blogContext.SaveChangesAsync();
             }
-            catch(Exception e)
+            catch
             {
                 return false;
             }
             return true;
         }
+
+        public User GetUserByNameOrMail(string user) => blogContext.Users.FirstOrDefault(x => x.Username == user || x.Mail == user);
+        
+
     }
 }
