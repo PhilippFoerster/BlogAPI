@@ -11,6 +11,7 @@ namespace BlogAPI.Models
 
         [MaxLength(50)]
         [Required]
+        [JsonIgnore]
         public string Mail { get; set; }
 
         [Required]

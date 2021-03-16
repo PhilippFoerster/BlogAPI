@@ -1,4 +1,3 @@
-using BlogAPI.Database;
 using BlogAPI.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;

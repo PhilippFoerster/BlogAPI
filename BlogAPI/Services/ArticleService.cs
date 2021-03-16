@@ -1,5 +1,4 @@
-﻿using BlogAPI.Database;
-using BlogAPI.Models;
+﻿using BlogAPI.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -19,50 +18,50 @@ namespace BlogAPI.Services
             this.userService = userService;
         }
 
-        public async Task<bool> InsertArticle(Article article)
+        public async Task InsertArticle(Article article)
         {
-            blogContext.Articles.Add(article);
-            foreach(var test in blogContext.ChangeTracker.Entries().ToArray())
-            {
-                if (test.Entity is User)
-                    test.State = EntityState.Detached;
-            }
+            await blogContext.Articles.AddAsync(article);
             await blogContext.SaveChangesAsync();
-            return true;
         }
 
-        public async Task<bool> InsertComment(Comment comment)
+        public async Task InsertComment(Comment comment)
         {
-            blogContext.Comments.Add(comment);
+            await blogContext.Comments.AddAsync(comment);
             await blogContext.SaveChangesAsync();
-            return true;
         }
 
-        public async Task<List<Article>> GetArticles()
-        {
-            return await blogContext.Articles.Include(x => x.CreatedBy).ToListAsync();
-        }
+        public async Task<List<Article>> GetArticles() => await blogContext.Articles.Include(x => x.CreatedBy).ToListAsync();
 
-        public Article CreateArticle(NewArticle newArticle, string user)
+        public async Task<Article> GetArticle(int id) => await blogContext.Articles.Include(x => x.CreatedBy).Include(x => x.Comments).FirstOrDefaultAsync(x => x.Id == id);
+
+        public async Task<Article> CreateArticle(NewArticle newArticle, string user)
         {
-            return new Article
+            return new()
             {
                 Caption = newArticle.Caption,
                 Text = newArticle.Text,
                 Image = newArticle.Image,
                 CreatedAt = DateTime.Now,
-                CreatedBy = userService.GetUserByNameOrMail(user)
+                CreatedBy = await userService.GetUserByNameOrMail(user)
             };
         }
 
-        public Comment CreateComment(NewComment newComment, string user)
+        public async Task<Comment> CreateComment(NewComment newComment, string user)
         {
-            return new Comment
+            return new()
             {
                 ArticleId = newComment.ArticleId,
                 Text = newComment.Text,
-                CreatedBy = userService.GetUserByNameOrMail(user)
+                CreatedBy = await userService.GetUserByNameOrMail(user),
+                CreatedAt = DateTime.Now
             };
+        }
+
+        public async Task<Comment> GetComment(int id) => await blogContext.Comments.FirstOrDefaultAsync(x => x.Id == id);
+        public async Task DeleteComment(Comment comment)
+        {
+            blogContext.Comments.Remove(comment);
+            await blogContext.SaveChangesAsync();
         }
     }
 }

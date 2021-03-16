@@ -1,10 +1,9 @@
 ﻿using BlogAPI.Attributes;
-using BlogAPI.Database;
 using BlogAPI.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,44 +22,43 @@ namespace BlogAPI.Services
         public bool IsAuthorized(HttpContext context, Role[] roles)
         {
             string header = context.Request.Headers["Authorization"];
-            if (header != null && header.StartsWith("Basic"))
-            {
-                string encoded = header[6..];
-                string userPass = Encoding.UTF8.GetString(Convert.FromBase64String(encoded));
-                var split = userPass.Split(":");
-                if (split.Length != 2)
-                    return false;
-                string username = split[0];
-                string password = split[1];
+            if (header == null || !header.StartsWith("Basic"))
+                return false;
+            string encoded = header[6..];
+            string userPass = Encoding.UTF8.GetString(Convert.FromBase64String(encoded));
+            var split = userPass.Split(":");
+            if (split.Length != 2)
+                return false;
+            string username = split[0];
+            string password = split[1];
 
-                var user = blogContext.Users.FirstOrDefault(x => x.Username == username || x.Mail == username);
-                if (user is null || !roles.Contains(user.Role) && user.Role != Role.Admin)
-                    return false;
-                var hasher = new PasswordHasher<string>();
-                var verification = hasher.VerifyHashedPassword(user.Username, user.Password, password);
-                return verification == PasswordVerificationResult.Success;
-            }
-            return false;
+            var user = blogContext.Users.FirstOrDefault(x => x.Username == username || x.Mail == username);
+            if (user is null || !roles.Contains(user.Role) && user.Role != Role.Admin)
+                return false;
+            var hasher = new PasswordHasher<string>();
+            var verification = hasher.VerifyHashedPassword(user.Username, user.Password, password);
+            return verification == PasswordVerificationResult.Success;
         }
 
-        public async Task<bool> CreateUser(User user)
+        public async Task<User> CreateUser(NewUser newUser)
         {
             var hasher = new PasswordHasher<string>();
-            user.Password = hasher.HashPassword(user.Username, user.Password);
-            blogContext.Users.Add(user);
-            try
-            {
-                await blogContext.SaveChangesAsync();
-            }
-            catch
-            {
-                return false;
-            }
-            return true;
+            newUser.Password = hasher.HashPassword(newUser.Username, newUser.Password);
+            var user = new User { Mail = newUser.Mail, Username = newUser.Username, Role = Role.User, Password = newUser.Password };
+            await blogContext.Users.AddAsync(user);
+            await blogContext.SaveChangesAsync();
+            return user;
         }
 
-        public User GetUserByNameOrMail(string user) => blogContext.Users.FirstOrDefault(x => x.Username == user || x.Mail == user);
-        
+        public async Task<User> GetUserByNameOrMail(string user) => await blogContext.Users.FirstOrDefaultAsync(x => x.Username == user || x.Mail == user);
+        public async Task<User> GetUserById(int id) => await blogContext.Users.FirstOrDefaultAsync(x => x.Id == id);
 
+        public async Task UpdateUser(User user)
+        {
+            blogContext.Users.Update(user);
+            await blogContext.SaveChangesAsync();
+        }
+
+        public async Task<bool> IsUserUnique(NewUser user) => !await blogContext.Users.AnyAsync(x => x.Mail == user.Mail || x.Username == user.Username);
     }
 }
