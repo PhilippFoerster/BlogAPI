@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
 using BlogAPI.Interfaces;
+using Newtonsoft.Json;
 
 namespace BlogAPI.Models
 {
@@ -23,5 +24,10 @@ namespace BlogAPI.Models
 
         [Required]
         public User CreatedBy { get; set; }
+
+
+        [NotMapped] 
+        public int LikeCount { get; set; }
+
     }
 }

@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace BlogAPI
 {
@@ -29,7 +30,7 @@ namespace BlogAPI
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.IgnoreNullValues = true);
-            services.AddDbContext<BlogContext>();
+            services.AddDbContext<BlogContext>(options => options.UseSqlServer(Configuration.GetConnectionString("blog")));
             services.AddScoped<UserService>();
             services.AddScoped<ArticleService>();
             services.AddScoped<CommentService>();
