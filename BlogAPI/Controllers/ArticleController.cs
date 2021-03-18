@@ -15,49 +15,15 @@ namespace BlogAPI.Controllers
         {
             this.articleService = articleService;
         }
+        
 
         [HttpPost]
-        [Route("comment/new")]
-        [Auth(Role.User, Role.Author)]
-        public async Task<ActionResult<User>> PostComment(NewComment newComment)
-        {
-            try
-            {
-                var comment = await articleService.CreateComment(newComment, Request.GetUser());
-                await articleService.InsertComment(comment);
-                return CreatedAtAction("GetComment", new { id = comment.Id }, comment);
-            }
-            catch
-            {
-                return StatusCode(500, "Error while creating comment");
-            }
-        }
-
-        [HttpGet]
-        [Route("comment/{id}")]
-        public async Task<ActionResult<Comment>> GetComment(int? id)
-        {
-            if (id is null)
-                return BadRequest("Missing id");
-            try
-            {
-                var comment = await articleService.GetComment((int)id);
-                if (comment is not null)
-                    return comment;
-                return NotFound($"No comment with id {id} was found");
-            }
-            catch
-            {
-                return StatusCode(500, $"Error while getting comment {id}");
-            }
-        }
-
-
-        [HttpPost]
-        [Route("article/new")]
+        [Route("article")]
         [Auth(Role.Author)]
         public async Task<ActionResult<User>> PostArticle(NewArticle newArticle)
         {
+            if (newArticle.HasNullProperty())
+                return BadRequest("Missing properties!");
             try
             {
                 var article = await articleService.CreateArticle(newArticle, Request.GetUser());
@@ -86,13 +52,13 @@ namespace BlogAPI.Controllers
 
         [HttpGet]
         [Route("article/{id}")]
-        public async Task<ActionResult<Article>> GetArticle(int? id)
+        public async Task<ActionResult<Article>> GetArticle(int? id, bool includeComments = false)
         {
             if (id is null)
                 return BadRequest("Missing id");
             try
             {
-                var article = await articleService.GetArticle((int)id);
+                var article = await articleService.GetArticle((int)id, includeComments);
                 if (article is not null)
                     return article;
                 return NotFound($"No article with id {id} was found");
@@ -103,24 +69,46 @@ namespace BlogAPI.Controllers
             }
         }
 
-        [HttpDelete]
-        [Route("comment/delete/{id}")]
+
+        [HttpPut]
+        [Route("article")]
         [Auth(Role.Admin)]
-        public async Task<IActionResult> DeleteComment(int? id)
+        public async Task<ActionResult<User>> ModifyUser(UpdateArticle updateArticle)
+        {
+            try
+            {
+                var article = await articleService.GetArticle(updateArticle.Id);
+                if (article is null)
+                    return NotFound($"No article with id {updateArticle.Id} was found");
+                article.UpdateFrom(updateArticle);
+                await articleService.UpdateArticle(article);
+                return CreatedAtAction("GetArticle", new { id = article.Id }, article);
+            }
+            catch
+            {
+                return StatusCode(500, $"Error while modifying article {updateArticle.Id}");
+            }
+        }
+
+
+        [HttpDelete]
+        [Route("article/{id}")]
+        [Auth(Role.Admin)]
+        public async Task<IActionResult> DeleteArticle(int? id)
         {
             if (id is null)
                 return BadRequest("Missing id");
             try
             {
-                var comment = await articleService.GetComment((int)id);
-                if (comment is null)
-                    return NotFound($"No comment with id {id} was found");
-                await articleService.DeleteComment(comment);
+                var article = await articleService.GetArticle((int)id);
+                if (article is null)
+                    return NotFound($"No article with id {id} was found");
+                await articleService.DeleteArticle(article);
                 return NoContent();
             }
             catch
             {
-                return StatusCode(500, "Error while deleting comment");
+                return StatusCode(500, "Error while deleting article");
             }
         }
     }

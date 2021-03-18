@@ -16,9 +16,11 @@ namespace BlogAPI.Controllers
         }
 
         [HttpPost]
-        [Route("user/new")]
+        [Route("user")]
         public async Task<ActionResult<User>> PostUser(NewUser newUser)
         {
+            if (newUser.HasNullProperty())
+                return BadRequest("Missing properties!");
             try
             {
                 if (!await userService.IsUserUnique(newUser))
@@ -40,7 +42,7 @@ namespace BlogAPI.Controllers
                 return BadRequest("Missing id");
             try
             {
-                var user = await userService.GetUserById((int)id);
+                var user = await userService.GetUser((int)id);
                 if (user is not null)
                     return user;
                 return NotFound($"No User with id {id} was found");
@@ -51,23 +53,44 @@ namespace BlogAPI.Controllers
             }
         }
 
-        [HttpPost]
-        [Route("user/modify")]
+        [HttpPut]
+        [Route("user")]
         [Auth(Role.Admin)]
-        public async Task<ActionResult<User>> ModifyUser(ModifyUser modifyUser)
+        public async Task<ActionResult<User>> ModifyUser(UpdateUser updateUser)
         {
             try
             {
-                var user = await userService.GetUserById(modifyUser.Id);
+                var user = await userService.GetUser(updateUser.Id);
                 if (user is null)
-                    return NotFound($"No User with id {modifyUser.Id} was found");
-                user.Role = modifyUser.Role;
+                    return NotFound($"No user with id {updateUser.Id} was found");
+                user.UpdateFrom(updateUser);
                 await userService.UpdateUser(user);
                 return CreatedAtAction("GetUser", new { id = user.Id }, user);
             }
             catch
             {
-                return StatusCode(500, $"Error while modifying user {modifyUser.Id}");
+                return StatusCode(500, $"Error while modifying user {updateUser.Id}");
+            }
+        }
+
+        [HttpDelete]
+        [Route("user/{id}")]
+        [Auth(Role.Admin)]
+        public async Task<IActionResult> DeleteUser(int? id)
+        {
+            if (id is null)
+                return BadRequest("Missing id");
+            try
+            {
+                var user = await userService.GetUser((int)id);
+                if (user is null)
+                    return NotFound($"No user with id {id} was found");
+                await userService.DeleteUser(user);
+                return NoContent();
+            }
+            catch
+            {
+                return StatusCode(500, "Error while deleting user");
             }
         }
 

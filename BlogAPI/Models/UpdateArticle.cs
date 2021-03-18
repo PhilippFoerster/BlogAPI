@@ -6,8 +6,9 @@ using BlogAPI.Interfaces;
 
 namespace BlogAPI.Models
 {
-    public class NewArticle : IUpdater
+    public class UpdateArticle : IUpdater
     {
+        public int Id { get; set; }
         public string Image { get; set; }
 
         public string Caption { get; set; }

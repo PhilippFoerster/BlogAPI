@@ -1,10 +1,11 @@
 ﻿using BlogAPI.Attributes;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using BlogAPI.Interfaces;
 
 namespace BlogAPI.Models
 {
-    public class User
+    public class User : IUpdateable
     {
         [Key]
         public int Id { get; set; }

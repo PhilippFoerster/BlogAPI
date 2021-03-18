@@ -24,43 +24,36 @@ namespace BlogAPI.Services
             await blogContext.SaveChangesAsync();
         }
 
-        public async Task InsertComment(Comment comment)
-        {
-            await blogContext.Comments.AddAsync(comment);
-            await blogContext.SaveChangesAsync();
-        }
 
-        public async Task<List<Article>> GetArticles() => await blogContext.Articles.Include(x => x.CreatedBy).ToListAsync();
+        public async Task<List<Article>> GetArticles()
+            => await blogContext.Articles.Include(x => x.CreatedBy).Select(x => new Article
+            {
+                CreatedAt = x.CreatedAt,
+                Caption = x.Caption,
+                CreatedBy = x.CreatedBy,
+                Id = x.Id
+            }).ToListAsync();
 
-        public async Task<Article> GetArticle(int id) => await blogContext.Articles.Include(x => x.CreatedBy).Include(x => x.Comments).FirstOrDefaultAsync(x => x.Id == id);
+        public async Task<Article> GetArticle(int id, bool includeComments = false) => await blogContext.Articles.Include(x => x.CreatedBy).If(includeComments, x => x.Include(x => x.Comments)).FirstOrDefaultAsync(x => x.Id == id);
 
         public async Task<Article> CreateArticle(NewArticle newArticle, string user)
         {
-            return new()
+            return new Article()
             {
-                Caption = newArticle.Caption,
-                Text = newArticle.Text,
-                Image = newArticle.Image,
                 CreatedAt = DateTime.Now,
-                CreatedBy = await userService.GetUserByNameOrMail(user)
-            };
+                CreatedBy = await userService.GetUser(user)
+            }.UpdateFrom(newArticle);
         }
 
-        public async Task<Comment> CreateComment(NewComment newComment, string user)
+        public async Task DeleteArticle(Article article)
         {
-            return new()
-            {
-                ArticleId = newComment.ArticleId,
-                Text = newComment.Text,
-                CreatedBy = await userService.GetUserByNameOrMail(user),
-                CreatedAt = DateTime.Now
-            };
+            blogContext.Articles.Remove(article);
+            await blogContext.SaveChangesAsync();
         }
 
-        public async Task<Comment> GetComment(int id) => await blogContext.Comments.FirstOrDefaultAsync(x => x.Id == id);
-        public async Task DeleteComment(Comment comment)
+        public async Task UpdateArticle(Article article)
         {
-            blogContext.Comments.Remove(comment);
+            blogContext.Articles.Update(article);
             await blogContext.SaveChangesAsync();
         }
     }

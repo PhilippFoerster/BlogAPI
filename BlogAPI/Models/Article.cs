@@ -4,10 +4,11 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
+using BlogAPI.Interfaces;
 
 namespace BlogAPI.Models
 {
-    public class Article
+    public class Article : IUpdateable
     {
         [Key]
         public int Id { get; set; }

@@ -28,11 +28,11 @@ namespace BlogAPI
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-
-            services.AddControllers();
+            services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.IgnoreNullValues = true);
             services.AddDbContext<BlogContext>();
             services.AddScoped<UserService>();
             services.AddScoped<ArticleService>();
+            services.AddScoped<CommentService>();
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "BlogAPI", Version = "v1" });
@@ -42,7 +42,7 @@ namespace BlogAPI
                     Name = "Basic",
                     Description = "Please enter your username and password",
                     Type = SecuritySchemeType.Http,
-                    Scheme = "basic", //This is were it was not working for me. I was using uppercase B
+                    Scheme = "basic",
                     In = ParameterLocation.Header
                 });
 
@@ -63,7 +63,7 @@ namespace BlogAPI
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            if (env.IsDevelopment())
+            if (env.IsDevelopment() || true)
             {
                 app.UseDeveloperExceptionPage();
                 app.UseSwagger();

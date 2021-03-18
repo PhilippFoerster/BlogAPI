@@ -44,18 +44,24 @@ namespace BlogAPI.Services
         {
             var hasher = new PasswordHasher<string>();
             newUser.Password = hasher.HashPassword(newUser.Username, newUser.Password);
-            var user = new User { Mail = newUser.Mail, Username = newUser.Username, Role = Role.User, Password = newUser.Password };
+            var user = new User().UpdateFrom(newUser);
             await blogContext.Users.AddAsync(user);
             await blogContext.SaveChangesAsync();
             return user;
         }
 
-        public async Task<User> GetUserByNameOrMail(string user) => await blogContext.Users.FirstOrDefaultAsync(x => x.Username == user || x.Mail == user);
-        public async Task<User> GetUserById(int id) => await blogContext.Users.FirstOrDefaultAsync(x => x.Id == id);
+        public async Task<User> GetUser(string user) => await blogContext.Users.FirstOrDefaultAsync(x => x.Username == user || x.Mail == user);
+        public async Task<User> GetUser(int id) => await blogContext.Users.FirstOrDefaultAsync(x => x.Id == id);
 
         public async Task UpdateUser(User user)
         {
             blogContext.Users.Update(user);
+            await blogContext.SaveChangesAsync();
+        }
+
+        public async Task DeleteUser(User user)
+        {
+            blogContext.Users.Remove(user);
             await blogContext.SaveChangesAsync();
         }
 
