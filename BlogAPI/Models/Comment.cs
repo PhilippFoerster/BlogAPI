@@ -16,18 +16,22 @@ namespace BlogAPI.Models
 
         [Required]
         public string Text { get; set; }
-
-        public int ArticleId { get; set; }
-
-        [Required]
         public DateTime CreatedAt { get; set; }
 
         [Required]
+        public int ArticleId { get; set; }
+        [Required]
+        public int CreatedById { get; set; }
+
+
+        public Article Article { get; set; }
+
         public User CreatedBy { get; set; }
 
+        public List<User> LikedBy { get; set; }
 
         [NotMapped] 
-        public int LikeCount { get; set; }
+        public int Likes { get; set; }
 
     }
 }

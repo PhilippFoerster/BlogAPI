@@ -15,7 +15,7 @@ namespace BlogAPI.Controllers
         {
             this.articleService = articleService;
         }
-        
+
 
         [HttpPost]
         [Route("article")]
@@ -59,9 +59,7 @@ namespace BlogAPI.Controllers
             try
             {
                 var article = await articleService.GetArticle((int)id, includeComments);
-                if (article is not null)
-                    return article;
-                return NotFound($"No article with id {id} was found");
+                return article is not null ? article : NotFound($"No article with id {id} was found");
             }
             catch
             {

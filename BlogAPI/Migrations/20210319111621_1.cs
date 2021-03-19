@@ -35,7 +35,7 @@ namespace BlogAPI.Migrations
                     Caption = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Text = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedById = table.Column<int>(type: "int", nullable: true)
+                    CreatedById = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -44,8 +44,7 @@ namespace BlogAPI.Migrations
                         name: "FK_Articles_Users_CreatedById",
                         column: x => x.CreatedById,
                         principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -55,9 +54,9 @@ namespace BlogAPI.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Text = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ArticleId = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedById = table.Column<int>(type: "int", nullable: true)
+                    ArticleId = table.Column<int>(type: "int", nullable: false),
+                    CreatedById = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -72,8 +71,31 @@ namespace BlogAPI.Migrations
                         name: "FK_Comments_Users_CreatedById",
                         column: x => x.CreatedById,
                         principalTable: "Users",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CommentUser",
+                columns: table => new
+                {
+                    LikedById = table.Column<int>(type: "int", nullable: false),
+                    LikedCommentsId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CommentUser", x => new { x.LikedById, x.LikedCommentsId });
+                    table.ForeignKey(
+                        name: "FK_CommentUser_Comments_LikedCommentsId",
+                        column: x => x.LikedCommentsId,
+                        principalTable: "Comments",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_CommentUser_Users_LikedById",
+                        column: x => x.LikedById,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
@@ -90,10 +112,18 @@ namespace BlogAPI.Migrations
                 name: "IX_Comments_CreatedById",
                 table: "Comments",
                 column: "CreatedById");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CommentUser_LikedCommentsId",
+                table: "CommentUser",
+                column: "LikedCommentsId");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "CommentUser");
+
             migrationBuilder.DropTable(
                 name: "Comments");
 

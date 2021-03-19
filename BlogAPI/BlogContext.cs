@@ -21,8 +21,21 @@ namespace BlogAPI
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
+            builder.Entity<Comment>()
+                .HasOne(x => x.CreatedBy)
+                .WithMany()
+                .HasForeignKey(x => x.CreatedById)
+                .OnDelete(DeleteBehavior.NoAction);
+            builder.Entity<Article>()
+                .HasOne(x => x.CreatedBy)
+                .WithMany()
+                .HasForeignKey(x => x.CreatedById)
+                .OnDelete(DeleteBehavior.NoAction);
             builder.Entity<User>(x => x.HasAlternateKey(user => user.Mail));
             builder.Entity<User>(x => x.HasAlternateKey(user => user.Username));
+            builder.Entity<User>()
+                .HasMany(x => x.LikedComments)
+                .WithMany(x => x.LikedBy);
         }
     }
 }

@@ -23,12 +23,15 @@ namespace BlogAPI.Models
         [Required]
         public string Text { get; set; }
 
-        public List<Comment> Comments { get; set; }
-
         [Required]
         public DateTime CreatedAt { get; set; }
 
         [Required]
+        public int CreatedById { get; set; }
+
         public User CreatedBy { get; set; }
+
+        public List<Comment> Comments { get; set; }
+
     }
 }

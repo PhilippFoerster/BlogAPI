@@ -25,6 +25,8 @@ namespace BlogAPI.Models
         [JsonIgnore]
         public string Password { get; set; }
 
+        public List<Comment> LikedComments { get; set; }
+
         [Required]
         public Role Role { get; set; }
     }

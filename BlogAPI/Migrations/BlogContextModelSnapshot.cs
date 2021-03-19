@@ -34,7 +34,7 @@ namespace BlogAPI.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("CreatedById")
+                    b.Property<int>("CreatedById")
                         .HasColumnType("int");
 
                     b.Property<string>("Image")
@@ -64,7 +64,7 @@ namespace BlogAPI.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("CreatedById")
+                    b.Property<int>("CreatedById")
                         .HasColumnType("int");
 
                     b.Property<string>("Text")
@@ -114,18 +114,35 @@ namespace BlogAPI.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("CommentUser", b =>
+                {
+                    b.Property<int>("LikedById")
+                        .HasColumnType("int");
+
+                    b.Property<int>("LikedCommentsId")
+                        .HasColumnType("int");
+
+                    b.HasKey("LikedById", "LikedCommentsId");
+
+                    b.HasIndex("LikedCommentsId");
+
+                    b.ToTable("CommentUser");
+                });
+
             modelBuilder.Entity("BlogAPI.Models.Article", b =>
                 {
                     b.HasOne("BlogAPI.Models.User", "CreatedBy")
                         .WithMany()
-                        .HasForeignKey("CreatedById");
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
 
                     b.Navigation("CreatedBy");
                 });
 
             modelBuilder.Entity("BlogAPI.Models.Comment", b =>
                 {
-                    b.HasOne("BlogAPI.Models.Article", null)
+                    b.HasOne("BlogAPI.Models.Article", "Article")
                         .WithMany("Comments")
                         .HasForeignKey("ArticleId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -133,9 +150,28 @@ namespace BlogAPI.Migrations
 
                     b.HasOne("BlogAPI.Models.User", "CreatedBy")
                         .WithMany()
-                        .HasForeignKey("CreatedById");
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Article");
 
                     b.Navigation("CreatedBy");
+                });
+
+            modelBuilder.Entity("CommentUser", b =>
+                {
+                    b.HasOne("BlogAPI.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("LikedById")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BlogAPI.Models.Comment", null)
+                        .WithMany()
+                        .HasForeignKey("LikedCommentsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("BlogAPI.Models.Article", b =>

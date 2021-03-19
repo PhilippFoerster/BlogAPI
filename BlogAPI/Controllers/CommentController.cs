@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using BlogAPI.Attributes;
@@ -13,10 +14,12 @@ namespace BlogAPI.Controllers
     public class CommentController : ControllerBase
     {
         private readonly CommentService commentService;
+        private readonly UserService userService;
 
-        public CommentController(CommentService commentService)
+        public CommentController(CommentService commentService, UserService userService)
         {
             this.commentService = commentService;
+            this.userService = userService;
         }
 
         [HttpPost]
@@ -61,9 +64,7 @@ namespace BlogAPI.Controllers
             try
             {
                 var comments = await commentService.GetComments((int)articleId);
-                if (comments is not null)
-                    return comments;
-                return NotFound($"No comment related to article {articleId} was found");
+                return comments is not null ? comments : NotFound($"No comment related to article {articleId} was found");
             }
             catch
             {
@@ -80,9 +81,7 @@ namespace BlogAPI.Controllers
             try
             {
                 var comment = await commentService.GetComment((int)id);
-                if (comment is not null)
-                    return comment;
-                return NotFound($"No comment with id {id} was found");
+                return comment is not null ? comment : NotFound($"No comment with id {id} was found");
             }
             catch
             {
@@ -108,6 +107,29 @@ namespace BlogAPI.Controllers
             catch
             {
                 return StatusCode(500, "Error while deleting comment");
+            }
+        }
+
+        [HttpPost]
+        [Route("comment/like")]
+        [Auth(Role.User, Role.Author)]
+        public async Task<ActionResult<Comment>> LikeComment(LikeComment like)
+        {
+            if (like.HasNullProperty())
+                return BadRequest("Missing properties!");
+            var comment = await commentService.GetComment((int) like.CommentId);
+            if(comment is null)
+                return NotFound($"No comment with id {like.CommentId} was found");
+            string text = (bool)like.Liked ? "like" : "dislike";
+            try
+            {
+                var user = await userService.GetUser(Request.GetUser());
+                comment = await commentService.LikeComment(comment, user, (bool)like.Liked);
+                return comment is not null ? comment : StatusCode(304);
+            }
+            catch
+            {
+                return StatusCode(500, $"Error while trying to {text} comment");
             }
         }
     }

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using BlogAPI.Interfaces;
 using BlogAPI.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace BlogAPI
 {
@@ -14,6 +15,8 @@ namespace BlogAPI
 
         //from https://stackoverflow.com/a/53476825/14742712
         public static IQueryable<T> If<T>(this IQueryable<T> source, bool condition, Func<IQueryable<T>, IQueryable<T>> transform) => condition ? transform(source) : source;
+        public static IQueryable<Comment> IncludeLikes(this IQueryable<Comment> source) 
+            => source.Select(x => new Comment { Id = x.Id, ArticleId = x.ArticleId, CreatedById = x.CreatedById, CreatedAt = x.CreatedAt, Likes = x.LikedBy.Count });
 
         public static T UpdateFrom<T, U>(this T source, U update) where T : IUpdateable where U : IUpdater
         {

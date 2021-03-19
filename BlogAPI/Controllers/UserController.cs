@@ -43,9 +43,7 @@ namespace BlogAPI.Controllers
             try
             {
                 var user = await userService.GetUser((int)id);
-                if (user is not null)
-                    return user;
-                return NotFound($"No User with id {id} was found");
+                return user is not null ? user : NotFound($"No User with id {id} was found");
             }
             catch
             {
