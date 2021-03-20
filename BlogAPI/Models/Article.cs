@@ -33,5 +33,7 @@ namespace BlogAPI.Models
 
         public List<Comment> Comments { get; set; }
 
+        public List<Topic> Topics { get; set; }
+
     }
 }

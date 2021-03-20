@@ -20,6 +20,10 @@ namespace BlogAPI.Services
 
         public async Task InsertArticle(Article article)
         {
+            var topics = article.Topics.Where(x => x.Id == 0);
+            var ids = article.Topics.Where(x => x.Id != 0).Select(x => x.Id);
+            article.Topics = await blogContext.Topics.Where(x => ids.Contains(x.Id)).ToListAsync();
+            article.Topics.AddRange(topics);
             await blogContext.Articles.AddAsync(article);
             await blogContext.SaveChangesAsync();
         }
@@ -38,10 +42,11 @@ namespace BlogAPI.Services
 
         public async Task<Article> CreateArticle(NewArticle newArticle, string user)
         {
+
             return new Article()
             {
                 CreatedAt = DateTime.Now,
-                CreatedBy = await userService.GetUser(user)
+                CreatedBy = await userService.GetUser(user),
             }.UpdateFrom(newArticle);
         }
 

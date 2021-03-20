@@ -1,4 +1,5 @@
-﻿using BlogAPI.Models;
+﻿using System;
+using BlogAPI.Models;
 using BlogAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
@@ -28,9 +29,10 @@ namespace BlogAPI.Controllers
             {
                 var article = await articleService.CreateArticle(newArticle, Request.GetUser());
                 await articleService.InsertArticle(article);
+                article.Topics.ForEach(x => x.Articles = null);
                 return CreatedAtAction("GetArticle", new { id = article.Id }, article);
             }
-            catch
+            catch(Exception e)
             {
                 return StatusCode(500, "Error while creating article");
             }

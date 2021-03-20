@@ -13,5 +13,7 @@ namespace BlogAPI.Models
         public string Caption { get; set; }
 
         public string Text { get; set; }
+
+        public List<Topic> Topics { get; set; }
     }
 }

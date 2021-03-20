@@ -9,6 +9,7 @@ namespace BlogAPI
         public DbSet<Article> Articles { get; set; }
         public DbSet<Comment> Comments { get; set; }
         public DbSet<User> Users { get; set; }
+        public DbSet<Topic> Topics { get; set; }
 
 
         public BlogContext(DbContextOptions<BlogContext> options) : base(options) { }
@@ -36,6 +37,9 @@ namespace BlogAPI
             builder.Entity<User>()
                 .HasMany(x => x.LikedComments)
                 .WithMany(x => x.LikedBy);
+            builder.Entity<Article>()
+                .HasMany(x => x.Topics)
+                .WithMany(x => x.Articles);
         }
     }
 }
