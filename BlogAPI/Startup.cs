@@ -12,9 +12,12 @@ using Microsoft.OpenApi.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace BlogAPI
 {
@@ -35,16 +38,33 @@ namespace BlogAPI
             services.AddScoped<UserService>();
             services.AddScoped<ArticleService>();
             services.AddScoped<CommentService>();
+            services.AddScoped<IdentityService>();
+
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(x =>
+                {
+                    x.SaveToken = true;
+                    x.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = Configuration["Jwt:Issuer"],
+                        ValidAudience = Configuration["Jwt:Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["Jwt:Key"])),
+                    };
+                });
+
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "BlogAPI", Version = "v1" });
 
-                c.AddSecurityDefinition("Basic", new OpenApiSecurityScheme
+                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
-                    Name = "Basic",
+                    Name = "Authorization",
                     Description = "Please enter your username and password",
-                    Type = SecuritySchemeType.Http,
-                    Scheme = "basic",
+                    Type = SecuritySchemeType.ApiKey,
                     In = ParameterLocation.Header
                 });
 
@@ -55,7 +75,7 @@ namespace BlogAPI
                         {
                             Reference = new OpenApiReference {
                                 Type = ReferenceType.SecurityScheme,
-                                Id = "Basic" }
+                                Id = "Bearer" }
                         }, new List<string>()
                     }
                 });
@@ -77,6 +97,7 @@ namespace BlogAPI
             app.UseRouting();
 
             app.UseAuthorization();
+            app.UseAuthentication();
 
             app.UseEndpoints(endpoints =>
             {

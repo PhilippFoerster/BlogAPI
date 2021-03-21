@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BlogAPI.Attributes;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 
 namespace BlogAPI.Controllers
 {
@@ -40,6 +42,7 @@ namespace BlogAPI.Controllers
         }
 
         [HttpGet]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [Route("articles")]
         public async Task<ActionResult<List<Article>>> GetArticles([FromQuery] List<string> topics)
         {
