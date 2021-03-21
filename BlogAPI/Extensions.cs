@@ -11,7 +11,8 @@ namespace BlogAPI
 {
     public static class Extensions
     {
-        public static string GetUser(this HttpRequest request) => Encoding.UTF8.GetString(Convert.FromBase64String(request.Headers["Authorization"].ToString()[6..])).Split(":")[0];
+        public static string GetUser(this HttpRequest request) 
+            => !request.Headers.ContainsKey("Authorization") ? null : Encoding.UTF8.GetString(Convert.FromBase64String(request.Headers["Authorization"].ToString()?[6..])).Split(":")[0];
 
         //from https://stackoverflow.com/a/53476825/14742712
         public static IQueryable<T> If<T>(this IQueryable<T> source, bool condition, Func<IQueryable<T>, IQueryable<T>> transform) => condition ? transform(source) : source;

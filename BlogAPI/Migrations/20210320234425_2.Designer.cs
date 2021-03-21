@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BlogAPI.Migrations
 {
     [DbContext(typeof(BlogContext))]
-    [Migration("20210319203313_2")]
+    [Migration("20210320234425_2")]
     partial class _2
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -26,12 +26,12 @@ namespace BlogAPI.Migrations
                     b.Property<int>("ArticlesId")
                         .HasColumnType("int");
 
-                    b.Property<int>("TopicsId")
-                        .HasColumnType("int");
+                    b.Property<string>("TopicsName")
+                        .HasColumnType("nvarchar(450)");
 
-                    b.HasKey("ArticlesId", "TopicsId");
+                    b.HasKey("ArticlesId", "TopicsName");
 
-                    b.HasIndex("TopicsId");
+                    b.HasIndex("TopicsName");
 
                     b.ToTable("ArticleTopic");
                 });
@@ -99,19 +99,12 @@ namespace BlogAPI.Migrations
 
             modelBuilder.Entity("BlogAPI.Models.Topic", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
                     b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(450)");
 
-                    b.HasKey("Id");
+                    b.HasKey("Name");
 
-                    b.ToTable("Topic");
+                    b.ToTable("Topics");
                 });
 
             modelBuilder.Entity("BlogAPI.Models.User", b =>
@@ -163,6 +156,21 @@ namespace BlogAPI.Migrations
                     b.ToTable("CommentUser");
                 });
 
+            modelBuilder.Entity("TopicUser", b =>
+                {
+                    b.Property<int>("InterestedUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("InterestsName")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("InterestedUserId", "InterestsName");
+
+                    b.HasIndex("InterestsName");
+
+                    b.ToTable("TopicUser");
+                });
+
             modelBuilder.Entity("ArticleTopic", b =>
                 {
                     b.HasOne("BlogAPI.Models.Article", null)
@@ -173,7 +181,7 @@ namespace BlogAPI.Migrations
 
                     b.HasOne("BlogAPI.Models.Topic", null)
                         .WithMany()
-                        .HasForeignKey("TopicsId")
+                        .HasForeignKey("TopicsName")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -219,6 +227,21 @@ namespace BlogAPI.Migrations
                     b.HasOne("BlogAPI.Models.Comment", null)
                         .WithMany()
                         .HasForeignKey("LikedCommentsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TopicUser", b =>
+                {
+                    b.HasOne("BlogAPI.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("InterestedUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BlogAPI.Models.Topic", null)
+                        .WithMany()
+                        .HasForeignKey("InterestsName")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

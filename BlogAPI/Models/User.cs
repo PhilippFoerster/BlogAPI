@@ -27,6 +27,8 @@ namespace BlogAPI.Models
 
         public List<Comment> LikedComments { get; set; }
 
+        public List<Topic> Interests { get; set; }
+
         [Required]
         public Role Role { get; set; }
     }

@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BlogAPI.Migrations
 {
     [DbContext(typeof(BlogContext))]
-    [Migration("20210319213601_3")]
-    partial class _3
+    [Migration("20210320163016_1")]
+    partial class _1
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -26,12 +26,12 @@ namespace BlogAPI.Migrations
                     b.Property<int>("ArticlesId")
                         .HasColumnType("int");
 
-                    b.Property<int>("TopicsId")
-                        .HasColumnType("int");
+                    b.Property<string>("TopicsName")
+                        .HasColumnType("nvarchar(450)");
 
-                    b.HasKey("ArticlesId", "TopicsId");
+                    b.HasKey("ArticlesId", "TopicsName");
 
-                    b.HasIndex("TopicsId");
+                    b.HasIndex("TopicsName");
 
                     b.ToTable("ArticleTopic");
                 });
@@ -99,17 +99,10 @@ namespace BlogAPI.Migrations
 
             modelBuilder.Entity("BlogAPI.Models.Topic", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
                     b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(450)");
 
-                    b.HasKey("Id");
+                    b.HasKey("Name");
 
                     b.ToTable("Topics");
                 });
@@ -173,7 +166,7 @@ namespace BlogAPI.Migrations
 
                     b.HasOne("BlogAPI.Models.Topic", null)
                         .WithMany()
-                        .HasForeignKey("TopicsId")
+                        .HasForeignKey("TopicsName")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

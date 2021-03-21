@@ -51,7 +51,7 @@ namespace BlogAPI.Services
         }
 
         public async Task<User> GetUser(string user) => await blogContext.Users.FirstOrDefaultAsync(x => x.Username == user || x.Mail == user);
-        public async Task<User> GetUser(int id) => await blogContext.Users.FirstOrDefaultAsync(x => x.Id == id);
+        public async Task<User> GetUser(int id) => await blogContext.Users.Include(x => x.Interests).FirstOrDefaultAsync(x => x.Id == id);
 
         public async Task UpdateUser(User user)
         {

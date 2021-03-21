@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
 using BlogAPI.Interfaces;
+using Newtonsoft.Json;
 
 namespace BlogAPI.Models
 {
@@ -27,6 +28,7 @@ namespace BlogAPI.Models
         public DateTime CreatedAt { get; set; }
 
         [Required]
+        [JsonIgnore]
         public int CreatedById { get; set; }
 
         public User CreatedBy { get; set; }

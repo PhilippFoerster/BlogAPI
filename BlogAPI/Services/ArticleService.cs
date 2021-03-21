@@ -20,29 +20,32 @@ namespace BlogAPI.Services
 
         public async Task InsertArticle(Article article)
         {
-            var topics = article.Topics.Where(x => x.Id == 0);
-            var ids = article.Topics.Where(x => x.Id != 0).Select(x => x.Id);
-            article.Topics = await blogContext.Topics.Where(x => ids.Contains(x.Id)).ToListAsync();
-            article.Topics.AddRange(topics);
+            article.Topics.Where(x => blogContext.Topics.Any(t => x.Name == t.Name)).ToList().ForEach(x => blogContext.Topics.Attach(x));
             await blogContext.Articles.AddAsync(article);
             await blogContext.SaveChangesAsync();
         }
 
 
-        public async Task<List<Article>> GetArticles()
-            => await blogContext.Articles.Include(x => x.CreatedBy).Select(x => new Article
+        public async Task<List<Article>> GetArticles(List<string> topics)
+            => await blogContext.Articles.Include(x => x.CreatedBy).Include(x => x.Topics)
+                .If(topics.Count > 0, q => q.Where(x => x.Topics.Any(x => topics.Contains(x.Name))))
+                .Select(x => new Article
             {
                 CreatedAt = x.CreatedAt,
                 Caption = x.Caption,
                 CreatedBy = x.CreatedBy,
-                Id = x.Id
+                Id = x.Id,
+                Topics = x.Topics
             }).ToListAsync();
 
-        public async Task<Article> GetArticle(int id, bool includeComments = false) => await blogContext.Articles.Include(x => x.CreatedBy).If(includeComments, x => x.Include(x => x.Comments)).FirstOrDefaultAsync(x => x.Id == id);
+        public async Task<Article> GetArticle(int id, bool includeComments = false)
+            => await blogContext.Articles.Include(x => x.CreatedBy)
+                .Include(x => x.Topics)
+                .If(includeComments, x => x.Include(x => x.Comments))
+                .FirstOrDefaultAsync(x => x.Id == id);
 
         public async Task<Article> CreateArticle(NewArticle newArticle, string user)
         {
-
             return new Article()
             {
                 CreatedAt = DateTime.Now,

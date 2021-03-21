@@ -3,6 +3,7 @@ using BlogAPI.Models;
 using BlogAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using BlogAPI.Attributes;
 
@@ -40,11 +41,11 @@ namespace BlogAPI.Controllers
 
         [HttpGet]
         [Route("articles")]
-        public async Task<ActionResult<List<Article>>> GetArticles()
+        public async Task<ActionResult<List<Article>>> GetArticles([FromQuery] List<string> topics)
         {
             try
             {
-                return await articleService.GetArticles();
+                return await articleService.GetArticles(topics);
             }
             catch
             {

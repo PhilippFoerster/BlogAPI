@@ -1,4 +1,5 @@
-﻿using BlogAPI.Attributes;
+﻿using System.Collections.Generic;
+using BlogAPI.Attributes;
 using BlogAPI.Interfaces;
 
 namespace BlogAPI.Models
@@ -8,5 +9,7 @@ namespace BlogAPI.Models
         public int Id { get; set; }
 
         public Role? Role { get; set; }
+
+        public List<Topic> Interests { get; set; }
     }
 }
