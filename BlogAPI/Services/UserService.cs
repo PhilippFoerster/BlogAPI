@@ -19,58 +19,57 @@ namespace BlogAPI.Services
     {
         private readonly BlogContext blogContext;
 
-        public UserService(BlogContext blogContext)
+        private readonly IConfiguration configuration;
+
+        public UserService(BlogContext blogContext, IConfiguration configuration)
         {
             this.blogContext = blogContext;
+            this.configuration = configuration;
         }
 
         public bool IsAuthorized(HttpContext context, Role[] roles)
         {
-            string header = context.Request.Headers["Authorization"];
-            if (header == null || !header.StartsWith("Basic"))
-                return false;
-            string encoded = header[6..];
-            string userPass = Encoding.UTF8.GetString(Convert.FromBase64String(encoded));
-            var split = userPass.Split(":");
-            if (split.Length != 2)
-                return false;
-            string username = split[0];
-            string password = split[1];
-
-            var user = blogContext.Users.FirstOrDefault(x => x.Username == username || x.Mail == username);
-            if (user is null || !roles.Contains(user.Role) && user.Role != Role.Admin)
-                return false;
-            var hasher = new PasswordHasher<string>();
-            var verification = hasher.VerifyHashedPassword(user.Username, user.Password, password);
-            return verification == PasswordVerificationResult.Success;
+            return true;
         }
 
-        public async Task<User> CreateUser(NewUser newUser)
+        public async Task<User> GetUserByNameOrMail(string user) => await blogContext.Users.FirstOrDefaultAsync(x => x.UserName == user || x.Email == user);
+
+        public async Task<UserResponse> GetUser(string id)
         {
-            var hasher = new PasswordHasher<string>();
-            newUser.Password = hasher.HashPassword(newUser.Username, newUser.Password);
-            var user = new User().UpdateFrom(newUser);
-            await blogContext.Users.AddAsync(user);
-            await blogContext.SaveChangesAsync();
-            return user;
+            return await blogContext.Users.Include(x => x.Interests)
+                .Select(x => new UserResponse { Email = x.Email, Id = x.Id, Interests = (List<string>)x.Interests.Select(x => x.Name), Username = x.UserName })
+                .FirstOrDefaultAsync(x => x.Id == id);
         }
 
-        public async Task<User> GetUser(string user) => await blogContext.Users.FirstOrDefaultAsync(x => x.Username == user || x.Mail == user);
-        public async Task<User> GetUser(int id) => await blogContext.Users.Include(x => x.Interests).FirstOrDefaultAsync(x => x.Id == id);
+        public async Task<User> GetUserById(string id) =>
+            await blogContext.Users.Include(x => x.Interests).FirstOrDefaultAsync(x => x.Id == id);
 
-        public async Task UpdateUser(User user)
+        public async Task UpdateTopics(List<Topic> topics)
         {
-            blogContext.Users.Update(user);
+            topics.Where(x => blogContext.Topics.Any(t => x.Name == t.Name)).ToList().ForEach(x => blogContext.Topics.Attach(x));
             await blogContext.SaveChangesAsync();
         }
 
-        public async Task DeleteUser(User user)
+        public string GenerateJwt(IdentityUser user)
         {
-            blogContext.Users.Remove(user);
-            await blogContext.SaveChangesAsync();
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]));
+            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature);
+
+            List<Claim> claims = new List<Claim>
+            {
+                new(JwtRegisteredClaimNames.Sub, user.UserName),
+                new(JwtRegisteredClaimNames.Email, user.Email),
+                new("id", user.Id)
+            };
+
+
+            var token = new JwtSecurityToken(configuration["Jwt:Issuer"],
+                configuration["Jwt:Audience"],
+                claims,
+                expires: DateTime.Now.AddHours(12),
+                signingCredentials: credentials);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
-
-        public async Task<bool> IsUserUnique(NewUser user) => !await blogContext.Users.AnyAsync(x => x.Mail == user.Mail || x.Username == user.Username);
-
     }
 }

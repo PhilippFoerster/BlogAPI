@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
 using BlogAPI.Interfaces;
+using Microsoft.AspNetCore.Identity;
 using Newtonsoft.Json;
 
 namespace BlogAPI.Models
@@ -23,8 +24,7 @@ namespace BlogAPI.Models
 
         [Required]
         [JsonIgnore]
-        public int CreatedById { get; set; }
-
+        public string CreatedById { get; set; }
 
         public Article Article { get; set; }
 

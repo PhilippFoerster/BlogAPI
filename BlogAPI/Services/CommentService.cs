@@ -30,7 +30,7 @@ namespace BlogAPI.Services
         {
             return new Comment
             {
-                CreatedBy = await userService.GetUser(user),
+                CreatedBy = await userService.GetUserByNameOrMail(user),
                 CreatedAt = DateTime.Now
             }.UpdateFrom(newComment);
         }
@@ -45,8 +45,9 @@ namespace BlogAPI.Services
             await blogContext.SaveChangesAsync();
         }
 
-        public async Task<Comment> LikeComment(Comment comment, User user, bool liked)
+        public async Task<Comment> LikeComment(Comment comment, string userId, bool liked)
         {
+            var user = new User { Id = userId };
             var hasLiked = await blogContext.Comments.Where(x => x.Id == comment.Id && x.LikedBy.Any(x => x.Id == user.Id)).IncludeLikes().FirstOrDefaultAsync() is not null;
             Action action = null;
             if (!hasLiked && liked)

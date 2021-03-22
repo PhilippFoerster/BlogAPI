@@ -1,6 +1,7 @@
 using BlogAPI.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+
 
 namespace BlogAPI
 {
@@ -38,7 +40,9 @@ namespace BlogAPI
             services.AddScoped<UserService>();
             services.AddScoped<ArticleService>();
             services.AddScoped<CommentService>();
-            services.AddScoped<IdentityService>();
+
+            services.AddIdentity<IdentityUser, IdentityRole>(options => options.User.RequireUniqueEmail = true)
+                .AddEntityFrameworkStores<BlogContext>();
 
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(x =>

@@ -1,10 +1,11 @@
 ﻿using BlogAPI.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace BlogAPI
 {
-    public class BlogContext : DbContext
+    public class BlogContext : IdentityDbContext
     {
         public DbSet<Article> Articles { get; set; }
         public DbSet<Comment> Comments { get; set; }
@@ -22,6 +23,7 @@ namespace BlogAPI
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
+            base.OnModelCreating(builder);
             builder.Entity<Comment>()
                 .HasOne(x => x.CreatedBy)
                 .WithMany()
@@ -32,8 +34,6 @@ namespace BlogAPI
                 .WithMany()
                 .HasForeignKey(x => x.CreatedById)
                 .OnDelete(DeleteBehavior.NoAction);
-            builder.Entity<User>(x => x.HasAlternateKey(user => user.Mail));
-            builder.Entity<User>(x => x.HasAlternateKey(user => user.Username));
             builder.Entity<User>()
                 .HasMany(x => x.LikedComments)
                 .WithMany(x => x.LikedBy);

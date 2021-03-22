@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using BlogAPI.Interfaces;
 using BlogAPI.Models;
@@ -28,5 +29,7 @@ namespace BlogAPI
         }
 
         public static bool HasNullProperty(this object o) => o.GetType().GetProperties().Any(x => x.GetValue(o) is null);
+
+        public static string GetUserID(this ClaimsPrincipal user) => user.Claims.First(x => x.Type == "id").Value;
     }
 }

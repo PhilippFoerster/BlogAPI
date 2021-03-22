@@ -49,7 +49,7 @@ namespace BlogAPI.Services
             return new Article()
             {
                 CreatedAt = DateTime.Now,
-                CreatedBy = await userService.GetUser(user),
+                CreatedBy = await userService.GetUserByNameOrMail(user),
             }.UpdateFrom(newArticle);
         }
 

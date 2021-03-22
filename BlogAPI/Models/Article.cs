@@ -29,7 +29,7 @@ namespace BlogAPI.Models
 
         [Required]
         [JsonIgnore]
-        public int CreatedById { get; set; }
+        public string CreatedById { get; set; }
 
         public User CreatedBy { get; set; }
 

@@ -6,10 +6,10 @@ namespace BlogAPI.Models
 {
     public class UpdateUser : IUpdater
     {
-        public int Id { get; set; }
+        public string Id { get; set; }
 
-        public Role? Role { get; set; }
+        public List<string> Roles { get; set; }
 
-        public List<Topic> Interests { get; set; }
+        public List<string> Interests { get; set; }
     }
 }

@@ -1,8 +1,11 @@
-﻿using BlogAPI.Models;
+﻿using System.Collections.Generic;
+using System.Linq;
+using BlogAPI.Attributes;
+using BlogAPI.Models;
 using BlogAPI.Services;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
-using BlogAPI.Attributes;
 
 namespace BlogAPI.Controllers
 {
@@ -10,9 +13,11 @@ namespace BlogAPI.Controllers
     public class UserController : ControllerBase
     {
         private readonly UserService userService;
-        public UserController(UserService userService)
+        private readonly UserManager<IdentityUser> userManager;
+        public UserController(UserService userService, UserManager<IdentityUser> userManager)
         {
             this.userService = userService;
+            this.userManager = userManager;
         }
 
         [HttpPost]
@@ -23,10 +28,12 @@ namespace BlogAPI.Controllers
                 return BadRequest("Missing properties!");
             try
             {
-                if (!await userService.IsUserUnique(newUser))
-                    return Conflict("Username or e-mail is already taken");
-                var user = await userService.CreateUser(newUser);
-                return CreatedAtAction("GetUser", new { id = user.Id }, user);
+                var user = new User { Email = newUser.Mail, UserName = newUser.Username };
+                var res = await userManager.CreateAsync(user, newUser.Password);
+                if (res.Succeeded)
+                    return CreatedAtAction("GetUser", new { id = user.Id }, new UserResponse { Username = user.UserName, Email = user.Email, Id = user.Id });
+                return BadRequest(res.Errors);
+
             }
             catch
             {
@@ -36,14 +43,14 @@ namespace BlogAPI.Controllers
 
         [HttpGet]
         [Route("user/{id}")]
-        public async Task<ActionResult<User>> GetUser(int? id)
+        public async Task<IActionResult> GetUser(string id)
         {
             if (id is null)
                 return BadRequest("Missing id");
             try
             {
-                var user = await userService.GetUser((int)id);
-                return user is not null ? user : NotFound($"No User with id {id} was found");
+                var user = await userService.GetUser(id);
+                return user is not null ? Ok(user) : NotFound($"No User with id {id} was found");
             }
             catch
             {
@@ -51,44 +58,106 @@ namespace BlogAPI.Controllers
             }
         }
 
-        [HttpPut]
-        [Route("user")]
+        [HttpPost]
+        [Route("users/{id}/roles")]
         [Auth(Role.Admin)]
-        public async Task<ActionResult<User>> ModifyUser(UpdateUser updateUser)
+        public async Task<ActionResult<User>> UpdateRoles(string id, UpdateRoles roles)
         {
             try
             {
-                var user = await userService.GetUser(updateUser.Id);
+                var user = await userService.GetUserById(id);
                 if (user is null)
-                    return NotFound($"No user with id {updateUser.Id} was found");
-                user.UpdateFrom(updateUser);
-                await userService.UpdateUser(user);
-                return CreatedAtAction("GetUser", new { id = user.Id }, user);
+                    return NotFound($"No user with id {id} was found");
+
+                IdentityResult res;
+                if (roles.Add)
+                    res = await userManager.AddToRolesAsync(user, roles.Roles);
+                else
+                    res = await userManager.RemoveFromRolesAsync(user, roles.Roles);
+
+                if (res.Succeeded)
+                {
+                    return CreatedAtAction("GetUser", new { id = user.Id },
+                        new UserResponse { Username = user.UserName, Email = user.Email, Id = user.Id, Interests = user.Interests.Select(x => x.Name), Roles = await userManager.GetRolesAsync(user) });
+                }
+                return BadRequest(res.Errors);
             }
             catch
             {
-                return StatusCode(500, $"Error while modifying user {updateUser.Id}");
+                return StatusCode(500, $"Error while modifying user {id}");
+            }
+        }
+
+        [HttpPost]
+        [Route("users/{id}/interests")]
+        [Auth(Role.Admin)]
+        public async Task<ActionResult<User>> UpdateInterests(string id, UpdateInterests interests)
+        {
+            try
+            {
+                var user = await userService.GetUserById(id);
+                if (user is null)
+                    return NotFound($"No user with id {id} was found");
+
+                if (interests.Add)
+                    user.Interests.AddRange(interests.Interests.Select(x => new Topic { Name = x }));
+                else
+                {
+                    interests.Interests.ForEach(x => user.Interests.Remove(new Topic{Name = x}));
+                }
+                await userService.UpdateTopics(user.Interests);
+
+                return CreatedAtAction("GetUser", new { id = user.Id },
+                    new UserResponse { Username = user.UserName, Email = user.Email, Id = user.Id, Interests = user.Interests.Select(x => x.Name), Roles = await userManager.GetRolesAsync(user) });
+
+            }
+            catch
+            {
+                return StatusCode(500, $"Error while modifying user {id}");
             }
         }
 
         [HttpDelete]
         [Route("user/{id}")]
-        [Auth(Role.Admin)]
-        public async Task<IActionResult> DeleteUser(int? id)
+        public async Task<IActionResult> DeleteUser(string id)
         {
             if (id is null)
                 return BadRequest("Missing id");
             try
             {
-                var user = await userService.GetUser((int)id);
+                var user = await userManager.FindByIdAsync(id);
                 if (user is null)
                     return NotFound($"No user with id {id} was found");
-                await userService.DeleteUser(user);
-                return NoContent();
+                var res = await userManager.DeleteAsync(user);
+                if (res.Succeeded)
+                    return NoContent();
+                return BadRequest(res.Errors);
             }
             catch
             {
                 return StatusCode(500, "Error while deleting user");
+            }
+        }
+
+        [HttpPost]
+        [Route("users/login")]
+        public async Task<IActionResult> Login(Login login)
+        {
+            if (login.HasNullProperty())
+                return BadRequest("Missing properties!");
+            try
+            {
+                var user = await userManager.FindByNameAsync(login.User) ?? await userManager.FindByEmailAsync(login.User);
+                if(user is null)
+                    return NotFound("No user was found");
+                if (await userManager.CheckPasswordAsync(user, login.Password))
+                    return Ok(userService.GenerateJwt(user));
+                return Unauthorized("Wrong credentials");
+
+            }
+            catch
+            {
+                return StatusCode(500, "Error while creating new user");
             }
         }
 

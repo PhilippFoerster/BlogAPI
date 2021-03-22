@@ -123,8 +123,8 @@ namespace BlogAPI.Controllers
             string text = (bool)like.Liked ? "like" : "dislike";
             try
             {
-                var user = await userService.GetUser(Request.GetUser());
-                comment = await commentService.LikeComment(comment, user, (bool)like.Liked);
+                var userId = User.GetUserID();
+                comment = await commentService.LikeComment(comment, userId, (bool)like.Liked);
                 return comment is not null ? comment : StatusCode(304);
             }
             catch
