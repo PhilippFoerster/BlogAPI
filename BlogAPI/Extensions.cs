@@ -6,20 +6,59 @@ using System.Security.Claims;
 using System.Text;
 using BlogAPI.Interfaces;
 using BlogAPI.Models;
+using BlogAPI.Models.Respond;
 using Microsoft.EntityFrameworkCore;
 
 namespace BlogAPI
 {
     public static class Extensions
     {
-        public static string GetUser(this HttpRequest request) 
+        public static string GetUser(this HttpRequest request)
             => !request.Headers.ContainsKey("Authorization") ? null : Encoding.UTF8.GetString(Convert.FromBase64String(request.Headers["Authorization"].ToString()?[6..])).Split(":")[0];
 
         //from https://stackoverflow.com/a/53476825/14742712
         public static IQueryable<T> If<T>(this IQueryable<T> source, bool condition, Func<IQueryable<T>, IQueryable<T>> transform) => condition ? transform(source) : source;
 
-        public static IQueryable<Comment> IncludeLikes(this IQueryable<Comment> source) 
-            => source.Select(x => new Comment { Id = x.Id, ArticleId = x.ArticleId, CreatedById = x.CreatedById, CreatedAt = x.CreatedAt, Likes = x.LikedBy.Count });
+        public static IQueryable<Comment> IncludeLikes(this IQueryable<Comment> source)
+            => source.Select(x => new Comment
+            {
+                Id = x.Id,
+                ArticleId = x.ArticleId,
+                CreatedById = x.CreatedById,
+                CreatedAt = x.CreatedAt, 
+                Likes = x.LikedBy.Count
+            });
+        public static IQueryable<UserResponse> SelectResponse(this IQueryable<User> source)
+            => source.Select(x => new UserResponse
+            {
+                Email = x.Email, 
+                Id = x.Id, 
+                Interests = (List<string>)x.Interests.Select(x => x.Name), 
+                Username = x.UserName
+            });
+
+        public static IQueryable<CommentResponse> SelectResponse(this IQueryable<Comment> source)
+            => source.Select(x => new CommentResponse
+            {
+                ArticleId = x.ArticleId,
+                CreatedAt = x.CreatedAt,
+                CreatedBy = x.CreatedBy.GetUserResponse(),
+                Likes = x.LikedBy.Count, 
+                Id = x.Id, 
+                Text = x.Text
+            });
+
+        public static IQueryable<ArticleResponse> SelectResponse(this IQueryable<Article> source)
+            => source.Select(x => new ArticleResponse{
+                Topics = x.Topics.Select(x => x.Name),
+                Comments = x.Comments.Select(x => x.GetCommentResponse()),
+                Image = x.Image, 
+                Caption = x.Caption,
+                CreatedAt = x.CreatedAt,
+                CreatedBy = x.CreatedBy.GetUserResponse(),
+                Id = x.Id,
+                Text = x.Text
+            });
 
         public static T UpdateFrom<T, U>(this T source, U update) where T : IUpdateable where U : IUpdater
         {

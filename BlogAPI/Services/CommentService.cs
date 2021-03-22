@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using BlogAPI.Models;
+using BlogAPI.Models.Respond;
 using Microsoft.EntityFrameworkCore;
 
 namespace BlogAPI.Services
@@ -35,10 +36,13 @@ namespace BlogAPI.Services
             }.UpdateFrom(newComment);
         }
 
-        public async Task<List<Comment>> GetComments() => await blogContext.Comments.Include(x => x.CreatedBy).IncludeLikes().ToListAsync();
-        public async Task<List<Comment>> GetComments(int articleId) => await blogContext.Comments.Where(x => x.ArticleId == articleId).Include(x => x.CreatedBy).IncludeLikes().ToListAsync();
+        public async Task<List<CommentResponse>> GetCommentResponses() => await blogContext.Comments.Include(x => x.CreatedBy).IncludeLikes().SelectResponse().ToListAsync();
+        public async Task<List<CommentResponse>> GetCommentResponses(int articleId) => await blogContext.Comments.Where(x => x.ArticleId == articleId).Include(x => x.CreatedBy).IncludeLikes().SelectResponse().ToListAsync();
 
-        public async Task<Comment> GetComment(int id) => await blogContext.Comments.IncludeLikes().FirstOrDefaultAsync(x => x.Id == id);
+        public async Task<Comment> GetCommentWithLikes(int id) => await blogContext.Comments.IncludeLikes().FirstOrDefaultAsync(x => x.Id == id);
+        public async Task<Comment> GetComment(int id) => await blogContext.Comments.FirstOrDefaultAsync(x => x.Id == id);
+        public async Task<CommentResponse> GetCommentResponse(int id) => await blogContext.Comments.Include(x => x.CreatedBy).IncludeLikes().SelectResponse().FirstOrDefaultAsync(x => x.Id == id);
+
         public async Task DeleteComment(Comment comment)
         {
             blogContext.Comments.Remove(comment);

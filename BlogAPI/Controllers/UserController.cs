@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using BlogAPI.Attributes;
 using BlogAPI.Models;
 using BlogAPI.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 
 namespace BlogAPI.Controllers
 {
@@ -22,7 +23,7 @@ namespace BlogAPI.Controllers
 
         [HttpPost]
         [Route("user")]
-        public async Task<ActionResult<User>> PostUser(NewUser newUser)
+        public async Task<IActionResult> PostUser(NewUser newUser)
         {
             if (newUser.HasNullProperty())
                 return BadRequest("Missing properties!");
@@ -49,7 +50,7 @@ namespace BlogAPI.Controllers
                 return BadRequest("Missing id");
             try
             {
-                var user = await userService.GetUser(id);
+                var user = await userService.GetUserResponse(id);
                 return user is not null ? Ok(user) : NotFound($"No User with id {id} was found");
             }
             catch
@@ -60,12 +61,12 @@ namespace BlogAPI.Controllers
 
         [HttpPost]
         [Route("users/{id}/roles")]
-        [Auth(Role.Admin)]
-        public async Task<ActionResult<User>> UpdateRoles(string id, UpdateRoles roles)
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin")]
+        public async Task<IActionResult> UpdateRoles(string id, UpdateRoles roles)
         {
             try
             {
-                var user = await userService.GetUserById(id);
+                var user = await userService.GetUser(id);
                 if (user is null)
                     return NotFound($"No user with id {id} was found");
 
@@ -90,12 +91,12 @@ namespace BlogAPI.Controllers
 
         [HttpPost]
         [Route("users/{id}/interests")]
-        [Auth(Role.Admin)]
-        public async Task<ActionResult<User>> UpdateInterests(string id, UpdateInterests interests)
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin")] //TODO
+        public async Task<IActionResult> UpdateInterests(string id, UpdateInterests interests)
         {
             try
             {
-                var user = await userService.GetUserById(id);
+                var user = await userService.GetUser(id);
                 if (user is null)
                     return NotFound($"No user with id {id} was found");
 
@@ -119,6 +120,7 @@ namespace BlogAPI.Controllers
 
         [HttpDelete]
         [Route("user/{id}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin")]
         public async Task<IActionResult> DeleteUser(string id)
         {
             if (id is null)

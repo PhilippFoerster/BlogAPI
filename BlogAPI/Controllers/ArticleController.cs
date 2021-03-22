@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using BlogAPI.Attributes;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 
@@ -23,17 +22,16 @@ namespace BlogAPI.Controllers
 
         [HttpPost]
         [Route("article")]
-        [Auth(Role.Author)]
-        public async Task<ActionResult<User>> PostArticle(NewArticle newArticle)
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> PostArticle(NewArticle newArticle)
         {
             if (newArticle.HasNullProperty())
                 return BadRequest("Missing properties!");
             try
             {
-                var article = await articleService.CreateArticle(newArticle, Request.GetUser());
+                var article = await articleService.CreateArticle(newArticle, User.GetUserID());
                 await articleService.InsertArticle(article);
-                article.Topics.ForEach(x => x.Articles = null);
-                return CreatedAtAction("GetArticle", new { id = article.Id }, article);
+                return CreatedAtAction("GetArticle", new { id = article.Id }, article.GetArticleResponse());
             }
             catch(Exception e)
             {
@@ -42,13 +40,12 @@ namespace BlogAPI.Controllers
         }
 
         [HttpGet]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [Route("articles")]
-        public async Task<ActionResult<List<Article>>> GetArticles([FromQuery] List<string> topics)
+        public async Task<IActionResult> GetArticles([FromQuery] List<string> topics)
         {
             try
             {
-                return await articleService.GetArticles(topics);
+                return Ok(await articleService.GetArticleResponses(topics));
             }
             catch
             {
@@ -58,14 +55,14 @@ namespace BlogAPI.Controllers
 
         [HttpGet]
         [Route("article/{id}")]
-        public async Task<ActionResult<Article>> GetArticle(int? id, bool includeComments = false)
+        public async Task<IActionResult> GetArticle(int? id, bool includeComments = false)
         {
             if (id is null)
                 return BadRequest("Missing id");
             try
             {
-                var article = await articleService.GetArticle((int)id, includeComments);
-                return article is not null ? article : NotFound($"No article with id {id} was found");
+                var article = await articleService.GetArticleResponse((int)id, includeComments);
+                return article is not null ? Ok(article) : NotFound($"No article with id {id} was found");
             }
             catch
             {
@@ -76,8 +73,8 @@ namespace BlogAPI.Controllers
 
         [HttpPut]
         [Route("article")]
-        [Auth(Role.Admin)]
-        public async Task<ActionResult<User>> ModifyUser(UpdateArticle updateArticle)
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin, Author")]
+        public async Task<IActionResult> ModifyArticle(UpdateArticle updateArticle)
         {
             try
             {
@@ -97,7 +94,7 @@ namespace BlogAPI.Controllers
 
         [HttpDelete]
         [Route("article/{id}")]
-        [Auth(Role.Admin)]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin")]
         public async Task<IActionResult> DeleteArticle(int? id)
         {
             if (id is null)

@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
 using BlogAPI.Interfaces;
+using BlogAPI.Models.Respond;
 using Newtonsoft.Json;
 
 namespace BlogAPI.Models
@@ -37,5 +38,17 @@ namespace BlogAPI.Models
 
         public List<Topic> Topics { get; set; }
 
+
+        public ArticleResponse GetArticleResponse() => new()
+        {
+            Topics = Topics.Select(x => x.Name).ToList(),
+            Comments = Comments.Select(x => x.GetCommentResponse()).ToList(),
+            Caption = Caption,
+            CreatedAt = CreatedAt,
+            CreatedBy = CreatedBy.GetUserResponse(),
+            Id = Id,
+            Text = Text,
+            Image = Image
+        };
     }
 }

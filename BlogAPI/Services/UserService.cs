@@ -1,5 +1,4 @@
-﻿using BlogAPI.Attributes;
-using BlogAPI.Models;
+﻿using BlogAPI.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -26,22 +25,15 @@ namespace BlogAPI.Services
             this.blogContext = blogContext;
             this.configuration = configuration;
         }
-
-        public bool IsAuthorized(HttpContext context, Role[] roles)
-        {
-            return true;
-        }
-
+        
         public async Task<User> GetUserByNameOrMail(string user) => await blogContext.Users.FirstOrDefaultAsync(x => x.UserName == user || x.Email == user);
 
-        public async Task<UserResponse> GetUser(string id)
+        public async Task<UserResponse> GetUserResponse(string id)
         {
-            return await blogContext.Users.Include(x => x.Interests)
-                .Select(x => new UserResponse { Email = x.Email, Id = x.Id, Interests = (List<string>)x.Interests.Select(x => x.Name), Username = x.UserName })
-                .FirstOrDefaultAsync(x => x.Id == id);
+            return await blogContext.Users.Include(x => x.Interests).SelectResponse().FirstOrDefaultAsync(x => x.Id == id);
         }
 
-        public async Task<User> GetUserById(string id) =>
+        public async Task<User> GetUser(string id) =>
             await blogContext.Users.Include(x => x.Interests).FirstOrDefaultAsync(x => x.Id == id);
 
         public async Task UpdateTopics(List<Topic> topics)
