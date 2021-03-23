@@ -13,9 +13,6 @@ namespace BlogAPI
 {
     public static class Extensions
     {
-        public static string GetUser(this HttpRequest request)
-            => !request.Headers.ContainsKey("Authorization") ? null : Encoding.UTF8.GetString(Convert.FromBase64String(request.Headers["Authorization"].ToString()?[6..])).Split(":")[0];
-
         //from https://stackoverflow.com/a/53476825/14742712
         public static IQueryable<T> If<T>(this IQueryable<T> source, bool condition, Func<IQueryable<T>, IQueryable<T>> transform) => condition ? transform(source) : source;
 
@@ -26,7 +23,8 @@ namespace BlogAPI
                 ArticleId = x.ArticleId,
                 CreatedById = x.CreatedById,
                 CreatedAt = x.CreatedAt, 
-                Likes = x.LikedBy.Count
+                Likes = x.LikedBy.Count,
+                Text = x.Text,
             });
         public static IQueryable<UserResponse> SelectResponse(this IQueryable<User> source)
             => source.Select(x => new UserResponse
@@ -51,7 +49,7 @@ namespace BlogAPI
         public static IQueryable<ArticleResponse> SelectResponse(this IQueryable<Article> source)
             => source.Select(x => new ArticleResponse{
                 Topics = x.Topics.Select(x => x.Name),
-                Comments = x.Comments.Select(x => x.GetCommentResponse()),
+                Comments = new List<CommentResponse>(),
                 Image = x.Image, 
                 Caption = x.Caption,
                 CreatedAt = x.CreatedAt,

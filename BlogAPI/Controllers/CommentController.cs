@@ -24,7 +24,7 @@ namespace BlogAPI.Controllers
         }
 
         [HttpPost]
-        [Route("comment")]
+        [Route("comments")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin, Author, User")]
         public async Task<IActionResult> PostComment(NewComment newComment)
         {
@@ -57,7 +57,7 @@ namespace BlogAPI.Controllers
         }
 
         [HttpGet]
-        [Route("comments/{articleId}")]
+        [Route("articles/{articleId}/comments")]
         public async Task<IActionResult> GetComments(int? articleId)
         {
             if (articleId is null)
@@ -74,7 +74,7 @@ namespace BlogAPI.Controllers
         }
 
         [HttpGet]
-        [Route("comment/{id}")]
+        [Route("comments/{id}")]
         public async Task<IActionResult> GetComment(int? id)
         {
             if (id is null)
@@ -91,7 +91,7 @@ namespace BlogAPI.Controllers
         }
 
         [HttpDelete]
-        [Route("comment/{id}")]
+        [Route("comments/{id}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin")]
         public async Task<IActionResult> DeleteComment(int? id)
         {
@@ -112,9 +112,9 @@ namespace BlogAPI.Controllers
         }
 
         [HttpPost]
-        [Route("comment/like")]
+        [Route("comments/like")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin, Author, User")]
-        public async Task<ActionResult<Comment>> LikeComment(LikeComment like)
+        public async Task<IActionResult> LikeComment(LikeComment like)
         {
             if (like.HasNullProperty())
                 return BadRequest("Missing properties!");
@@ -126,7 +126,7 @@ namespace BlogAPI.Controllers
             {
                 var userId = User.GetUserID();
                 comment = await commentService.LikeComment(comment, userId, (bool)like.Liked);
-                return comment is not null ? comment : StatusCode(304);
+                return comment is not null ? Ok(comment.GetCommentResponse()) : StatusCode(304);
             }
             catch
             {

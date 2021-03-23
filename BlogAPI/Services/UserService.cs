@@ -20,18 +20,16 @@ namespace BlogAPI.Services
 
         private readonly IConfiguration configuration;
 
-        public UserService(BlogContext blogContext, IConfiguration configuration)
+        private UserManager<IdentityUser> userManager;
+
+        public UserService(BlogContext blogContext, IConfiguration configuration, UserManager<IdentityUser> userManager)
         {
             this.blogContext = blogContext;
             this.configuration = configuration;
+            this.userManager = userManager;
         }
         
-        public async Task<User> GetUserByNameOrMail(string user) => await blogContext.Users.FirstOrDefaultAsync(x => x.UserName == user || x.Email == user);
-
-        public async Task<UserResponse> GetUserResponse(string id)
-        {
-            return await blogContext.Users.Include(x => x.Interests).SelectResponse().FirstOrDefaultAsync(x => x.Id == id);
-        }
+        public async Task<UserResponse> GetUserResponse(string id) => await blogContext.Users.Include(x => x.Interests).SelectResponse().FirstOrDefaultAsync(x => x.Id == id);
 
         public async Task<User> GetUser(string id) =>
             await blogContext.Users.Include(x => x.Interests).FirstOrDefaultAsync(x => x.Id == id);
@@ -42,7 +40,7 @@ namespace BlogAPI.Services
             await blogContext.SaveChangesAsync();
         }
 
-        public string GenerateJwt(IdentityUser user)
+        public async Task<string> GenerateJwt(IdentityUser user)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature);
@@ -51,6 +49,7 @@ namespace BlogAPI.Services
             {
                 new(JwtRegisteredClaimNames.Sub, user.UserName),
                 new(JwtRegisteredClaimNames.Email, user.Email),
+                new (ClaimTypes.Role, string.Join(",", await userManager.GetRolesAsync(user))),
                 new("id", user.Id)
             };
 

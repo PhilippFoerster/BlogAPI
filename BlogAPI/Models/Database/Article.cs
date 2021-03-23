@@ -41,8 +41,8 @@ namespace BlogAPI.Models
 
         public ArticleResponse GetArticleResponse() => new()
         {
-            Topics = Topics.Select(x => x.Name).ToList(),
-            Comments = Comments.Select(x => x.GetCommentResponse()).ToList(),
+            Topics = Topics?.Select(x => x.Name).ToList() ?? new List<string>(),
+            Comments = Comments?.Select(x => x.GetCommentResponse()).ToList() ?? new List<CommentResponse>(),
             Caption = Caption,
             CreatedAt = CreatedAt,
             CreatedBy = CreatedBy.GetUserResponse(),

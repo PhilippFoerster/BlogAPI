@@ -22,7 +22,6 @@ namespace BlogAPI.Services
         public async Task InsertArticle(Article article)
         {
             article.Topics.Where(x => blogContext.Topics.Any(t => x.Name == t.Name)).ToList().ForEach(x => blogContext.Topics.Attach(x));
-            blogContext.Attach(article.CreatedBy);
             await blogContext.Articles.AddAsync(article);
             await blogContext.SaveChangesAsync();
         }
@@ -36,10 +35,9 @@ namespace BlogAPI.Services
 
         public async Task<Article> GetArticle(int id) => await blogContext.Articles.FirstOrDefaultAsync(x => x.Id == id);
 
-        public async Task<ArticleResponse> GetArticleResponse(int id, bool includeComments = false)
+        public async Task<ArticleResponse> GetArticleResponse(int id)
             => await blogContext.Articles.Include(x => x.CreatedBy)
                 .Include(x => x.Topics)
-                .If(includeComments, x => x.Include(x => x.Comments))
                 .SelectResponse()
                 .FirstOrDefaultAsync(x => x.Id == id);
 
@@ -48,7 +46,7 @@ namespace BlogAPI.Services
             return new ()
             {
                 CreatedAt = DateTime.Now,
-                CreatedBy = new User { Id = userId },
+                CreatedBy = await userService.GetUser(userId),
                 Topics = newArticle.Topics.Select(x => new Topic { Name = x }).ToList(),
                 Caption = newArticle.Caption,
                 Text = newArticle.Text,

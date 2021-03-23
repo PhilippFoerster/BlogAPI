@@ -22,7 +22,7 @@ namespace BlogAPI.Controllers
         }
 
         [HttpPost]
-        [Route("user")]
+        [Route("users")]
         public async Task<IActionResult> PostUser(NewUser newUser)
         {
             if (newUser.HasNullProperty())
@@ -32,7 +32,7 @@ namespace BlogAPI.Controllers
                 var user = new User { Email = newUser.Mail, UserName = newUser.Username };
                 var res = await userManager.CreateAsync(user, newUser.Password);
                 if (res.Succeeded)
-                    return CreatedAtAction("GetUser", new { id = user.Id }, new UserResponse { Username = user.UserName, Email = user.Email, Id = user.Id });
+                    return CreatedAtAction("GetUser", new { id = user.Id }, user.GetUserResponse());
                 return BadRequest(res.Errors);
 
             }
@@ -43,7 +43,7 @@ namespace BlogAPI.Controllers
         }
 
         [HttpGet]
-        [Route("user/{id}")]
+        [Route("users/{id}")]
         public async Task<IActionResult> GetUser(string id)
         {
             if (id is null)
@@ -78,8 +78,7 @@ namespace BlogAPI.Controllers
 
                 if (res.Succeeded)
                 {
-                    return CreatedAtAction("GetUser", new { id = user.Id },
-                        new UserResponse { Username = user.UserName, Email = user.Email, Id = user.Id, Interests = user.Interests.Select(x => x.Name), Roles = await userManager.GetRolesAsync(user) });
+                    return CreatedAtAction("GetUser", new { id = user.Id }, user.GetUserResponse());
                 }
                 return BadRequest(res.Errors);
             }
@@ -108,8 +107,7 @@ namespace BlogAPI.Controllers
                 }
                 await userService.UpdateTopics(user.Interests);
 
-                return CreatedAtAction("GetUser", new { id = user.Id },
-                    new UserResponse { Username = user.UserName, Email = user.Email, Id = user.Id, Interests = user.Interests.Select(x => x.Name), Roles = await userManager.GetRolesAsync(user) });
+                return CreatedAtAction("GetUser", new { id = user.Id }, user.GetUserResponse());
 
             }
             catch
@@ -119,7 +117,7 @@ namespace BlogAPI.Controllers
         }
 
         [HttpDelete]
-        [Route("user/{id}")]
+        [Route("users/{id}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin")]
         public async Task<IActionResult> DeleteUser(string id)
         {
@@ -153,7 +151,7 @@ namespace BlogAPI.Controllers
                 if(user is null)
                     return NotFound("No user was found");
                 if (await userManager.CheckPasswordAsync(user, login.Password))
-                    return Ok(userService.GenerateJwt(user));
+                    return Ok(await userService.GenerateJwt(user));
                 return Unauthorized("Wrong credentials");
 
             }
@@ -163,5 +161,12 @@ namespace BlogAPI.Controllers
             }
         }
 
+
+        [HttpGet]
+        [Route("users/Test")]
+        public async Task<IActionResult> Login(string id)
+        {
+            return Ok(await userManager.GetRolesAsync(await userManager.FindByIdAsync(id)));
+        }
     }
 }

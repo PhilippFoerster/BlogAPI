@@ -31,17 +31,19 @@ namespace BlogAPI.Services
         {
             return new Comment
             {
-                CreatedBy = await userService.GetUserByNameOrMail(user),
-                CreatedAt = DateTime.Now
-            }.UpdateFrom(newComment);
+                CreatedBy = await userService.GetUser(user),
+                CreatedAt = DateTime.Now,
+                ArticleId = (int)newComment.ArticleId,
+                Text = newComment.Text
+            };
         }
 
-        public async Task<List<CommentResponse>> GetCommentResponses() => await blogContext.Comments.Include(x => x.CreatedBy).IncludeLikes().SelectResponse().ToListAsync();
-        public async Task<List<CommentResponse>> GetCommentResponses(int articleId) => await blogContext.Comments.Where(x => x.ArticleId == articleId).Include(x => x.CreatedBy).IncludeLikes().SelectResponse().ToListAsync();
+        public async Task<List<CommentResponse>> GetCommentResponses() => await blogContext.Comments.Include(x => x.CreatedBy).SelectResponse().ToListAsync();
+        public async Task<List<CommentResponse>> GetCommentResponses(int articleId) => await blogContext.Comments.Where(x => x.ArticleId == articleId).Include(x => x.CreatedBy).SelectResponse().ToListAsync();
 
         public async Task<Comment> GetCommentWithLikes(int id) => await blogContext.Comments.IncludeLikes().FirstOrDefaultAsync(x => x.Id == id);
         public async Task<Comment> GetComment(int id) => await blogContext.Comments.FirstOrDefaultAsync(x => x.Id == id);
-        public async Task<CommentResponse> GetCommentResponse(int id) => await blogContext.Comments.Include(x => x.CreatedBy).IncludeLikes().SelectResponse().FirstOrDefaultAsync(x => x.Id == id);
+        public async Task<CommentResponse> GetCommentResponse(int id) => await blogContext.Comments.Include(x => x.CreatedBy).SelectResponse().FirstOrDefaultAsync(x => x.Id == id);
 
         public async Task DeleteComment(Comment comment)
         {
@@ -69,6 +71,7 @@ namespace BlogAPI.Services
             if (action is null)
                 return null;
             blogContext.Attach(comment);
+            blogContext.Attach(user);
             action();
             await blogContext.SaveChangesAsync();
             comment.LikedBy = null;
