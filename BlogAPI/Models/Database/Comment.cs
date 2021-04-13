@@ -2,16 +2,12 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Threading.Tasks;
-using BlogAPI.Interfaces;
 using BlogAPI.Models.Respond;
-using Microsoft.AspNetCore.Identity;
 using Newtonsoft.Json;
 
 namespace BlogAPI.Models
 {
-    public class Comment : IUpdateable
+    public class Comment
     {
         [Key]
         public int Id { get; set; }

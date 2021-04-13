@@ -20,7 +20,7 @@ namespace BlogAPI.Services
 
         private readonly IConfiguration configuration;
 
-        private UserManager<IdentityUser> userManager;
+        private readonly UserManager<IdentityUser> userManager;
 
         public UserService(BlogContext blogContext, IConfiguration configuration, UserManager<IdentityUser> userManager)
         {
@@ -32,20 +32,32 @@ namespace BlogAPI.Services
         public async Task<UserResponse> GetUserResponse(string id) => await blogContext.Users.Include(x => x.Interests).SelectResponse().FirstOrDefaultAsync(x => x.Id == id);
 
         public async Task<User> GetUser(string id) =>
+            await blogContext.Users.FirstOrDefaultAsync(x => x.Id == id);
+        public async Task<User> GetUserWithInterests(string id) =>
             await blogContext.Users.Include(x => x.Interests).FirstOrDefaultAsync(x => x.Id == id);
 
-        public async Task UpdateTopics(List<Topic> topics)
+        public async Task UpdateTopics(User user, List<Topic> oldTopics, List<Topic> newTopics)
         {
-            topics.Where(x => blogContext.Topics.Any(t => x.Name == t.Name)).ToList().ForEach(x => blogContext.Topics.Attach(x));
+            
+            var comparer = new TopicComparer();
+            user.Interests = oldTopics.Intersect(newTopics, comparer).ToList();
+            var existing = await blogContext.Topics.Where(x => newTopics.Contains(x)).ToListAsync();
+            var notExisting = newTopics.Except(existing, comparer).ToList();
+            var added = existing.Concat(notExisting).Except(oldTopics, comparer);
+
+            user.Interests.AddRange(added);
             await blogContext.SaveChangesAsync();
         }
+
+        public async Task<List<Topic>> GetInterests(string userId) => await blogContext.Topics.Where(x => x.InterestedUser.Contains(new User { Id = userId})).ToListAsync();
+        public async Task<List<string>> GetRoles(string userId) => (await userManager.GetRolesAsync(new User { Id = userId })).ToList();
 
         public async Task<string> GenerateJwt(IdentityUser user)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature);
 
-            List<Claim> claims = new List<Claim>
+            var claims = new List<Claim>
             {
                 new(JwtRegisteredClaimNames.Sub, user.UserName),
                 new(JwtRegisteredClaimNames.Email, user.Email),

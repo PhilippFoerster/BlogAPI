@@ -1,13 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
-using BlogAPI.Interfaces;
-
-namespace BlogAPI.Models
+﻿namespace BlogAPI.Models
 {
-    public class NewComment : IUpdater
+    public class NewComment
     {
         public string Text { get; set; }
 

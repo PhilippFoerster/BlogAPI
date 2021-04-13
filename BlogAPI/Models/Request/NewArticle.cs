@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using BlogAPI.Interfaces;
+﻿using System.Collections.Generic;
 
 namespace BlogAPI.Models
 {
-    public class NewArticle : IUpdater
+    public class NewArticle
     {
         public string Image { get; set; }
 

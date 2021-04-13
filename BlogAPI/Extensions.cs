@@ -1,13 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Linq;
 using System.Security.Claims;
-using System.Text;
-using BlogAPI.Interfaces;
 using BlogAPI.Models;
 using BlogAPI.Models.Respond;
-using Microsoft.EntityFrameworkCore;
 
 namespace BlogAPI
 {
@@ -31,7 +26,6 @@ namespace BlogAPI
             {
                 Email = x.Email, 
                 Id = x.Id, 
-                Interests = (List<string>)x.Interests.Select(x => x.Name), 
                 Username = x.UserName
             });
 
@@ -49,7 +43,6 @@ namespace BlogAPI
         public static IQueryable<ArticleResponse> SelectResponse(this IQueryable<Article> source)
             => source.Select(x => new ArticleResponse{
                 Topics = x.Topics.Select(x => x.Name),
-                Comments = new List<CommentResponse>(),
                 Image = x.Image, 
                 Caption = x.Caption,
                 CreatedAt = x.CreatedAt,
@@ -57,14 +50,7 @@ namespace BlogAPI
                 Id = x.Id,
                 Text = x.Text
             });
-
-        public static T UpdateFrom<T, U>(this T source, U update) where T : IUpdateable where U : IUpdater
-        {
-            update.GetType().GetProperties().ToList().ForEach(p =>
-                source.GetType().GetProperty(p.Name)?.SetValue(source, p.GetValue(update)));
-            return source;
-        }
-
+        
         public static bool HasNullProperty(this object o) => o.GetType().GetProperties().Any(x => x.GetValue(o) is null);
 
         public static string GetUserID(this ClaimsPrincipal user) => user.Claims.First(x => x.Type == "id").Value;

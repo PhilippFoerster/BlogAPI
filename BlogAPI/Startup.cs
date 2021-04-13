@@ -44,6 +44,8 @@ namespace BlogAPI
             services.AddIdentity<IdentityUser, IdentityRole>(options => options.User.RequireUniqueEmail = true)
                 .AddEntityFrameworkStores<BlogContext>();
 
+            services.AddCors(x => x.AddPolicy("AllowAll", builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
+
 
             services.AddAuthentication(options =>
             {
@@ -101,12 +103,11 @@ namespace BlogAPI
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "BlogAPI v1"));
             }
 
-            app.UseHttpsRedirection();
-
             app.UseRouting();
+            app.UseCors("AllowAll");
 
-            app.UseAuthorization();
             app.UseAuthentication();
+            app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {

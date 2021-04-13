@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BlogAPI.Models.Respond;
+using Microsoft.AspNetCore.Identity;
 
 namespace BlogAPI.Services
 {
@@ -28,12 +29,17 @@ namespace BlogAPI.Services
 
 
         public async Task<List<ArticleResponse>> GetArticleResponses(List<string> topics)
-            => await blogContext.Articles.Include(x => x.CreatedBy).Include(x => x.Topics)
+            => await blogContext.Articles.Include(x => x.CreatedBy)
+                .Include(x => x.Topics)
                 .If(topics.Count > 0, q => q.Where(x => x.Topics.Any(x => topics.Contains(x.Name))))
                 .SelectResponse()
                 .ToListAsync();
 
         public async Task<Article> GetArticle(int id) => await blogContext.Articles.FirstOrDefaultAsync(x => x.Id == id);
+
+        public async Task<User> GetAuthor(Article article) 
+            => await blogContext.Users.Where(x => x.Id == blogContext.Articles.Find(article.Id).CreatedById).FirstOrDefaultAsync();
+        
 
         public async Task<ArticleResponse> GetArticleResponse(int id)
             => await blogContext.Articles.Include(x => x.CreatedBy)

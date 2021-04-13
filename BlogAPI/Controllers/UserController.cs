@@ -1,12 +1,16 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using BlogAPI.Models;
 using BlogAPI.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
+using BlogAPI.Models.Respond;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.OpenApi.Validations;
 
 namespace BlogAPI.Controllers
 {
@@ -59,9 +63,26 @@ namespace BlogAPI.Controllers
             }
         }
 
+        [HttpGet]
+        [Route("users/{id}/roles")]
+        public async Task<IActionResult> GetUserRoles(string id)
+        {
+            if (id is null)
+                return BadRequest("Missing id");
+            try
+            {
+                var roles = await userService.GetRoles(id);
+                return Ok(new RolesResponse{Roles = roles});
+            }
+            catch
+            {
+                return StatusCode(500, $"Error while getting roles of user {id}");
+            }
+        }
+
         [HttpPost]
         [Route("users/{id}/roles")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
         public async Task<IActionResult> UpdateRoles(string id, UpdateRoles roles)
         {
             try
@@ -70,17 +91,15 @@ namespace BlogAPI.Controllers
                 if (user is null)
                     return NotFound($"No user with id {id} was found");
 
-                IdentityResult res;
-                if (roles.Add)
-                    res = await userManager.AddToRolesAsync(user, roles.Roles);
-                else
-                    res = await userManager.RemoveFromRolesAsync(user, roles.Roles);
+                var userRoles = await userManager.GetRolesAsync(user);
+                var intersect = userRoles.Intersect(roles.Roles).ToList();
+                var res = await userManager.AddToRolesAsync(user, roles.Roles.Except(intersect));
+                var res2 = await userManager.RemoveFromRolesAsync(user, userRoles.Except(intersect));
+                var errors = res.Errors.Concat(res2.Errors);
 
                 if (res.Succeeded)
-                {
-                    return CreatedAtAction("GetUser", new { id = user.Id }, user.GetUserResponse());
-                }
-                return BadRequest(res.Errors);
+                    return CreatedAtAction("GetUserRoles", new { id = user.Id }, new RolesResponse{Roles = (await userManager.GetRolesAsync(user)).ToList()});
+                return BadRequest(errors);
             }
             catch
             {
@@ -88,29 +107,42 @@ namespace BlogAPI.Controllers
             }
         }
 
+        [HttpGet]
+        [Route("users/{id}/interests")]
+        public async Task<IActionResult> GetUserInterests(string id)
+        {
+            if (id is null)
+                return BadRequest("Missing id");
+            try
+            {
+                var interests = await userService.GetInterests(id);
+                return Ok(new InterestsResponse { Interests = interests.Select(x => x.Name).ToList()});
+            }
+            catch
+            {
+                return StatusCode(500, $"Error while getting interests of user {id}");
+            }
+        }
+
         [HttpPost]
         [Route("users/{id}/interests")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin")] //TODO
+        //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")] //TODO
         public async Task<IActionResult> UpdateInterests(string id, UpdateInterests interests)
         {
             try
             {
-                var user = await userService.GetUser(id);
+                var user = await userService.GetUserWithInterests(id);
                 if (user is null)
                     return NotFound($"No user with id {id} was found");
 
-                if (interests.Add)
-                    user.Interests.AddRange(interests.Interests.Select(x => new Topic { Name = x }));
-                else
-                {
-                    interests.Interests.ForEach(x => user.Interests.Remove(new Topic{Name = x}));
-                }
-                await userService.UpdateTopics(user.Interests);
+                var newInterests = interests.Interests.Select(x => new Topic { Name = x }).ToList();
 
-                return CreatedAtAction("GetUser", new { id = user.Id }, user.GetUserResponse());
+                await userService.UpdateTopics(user, user.Interests, newInterests);
+
+                return CreatedAtAction("GetUserInterests", new { id = user.Id }, new InterestsResponse { Interests = newInterests.Select(x => x.Name).ToList()});
 
             }
-            catch
+            catch(Exception e)
             {
                 return StatusCode(500, $"Error while modifying user {id}");
             }
@@ -118,7 +150,7 @@ namespace BlogAPI.Controllers
 
         [HttpDelete]
         [Route("users/{id}")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
         public async Task<IActionResult> DeleteUser(string id)
         {
             if (id is null)
@@ -159,14 +191,6 @@ namespace BlogAPI.Controllers
             {
                 return StatusCode(500, "Error while creating new user");
             }
-        }
-
-
-        [HttpGet]
-        [Route("users/Test")]
-        public async Task<IActionResult> Login(string id)
-        {
-            return Ok(await userManager.GetRolesAsync(await userManager.FindByIdAsync(id)));
         }
     }
 }

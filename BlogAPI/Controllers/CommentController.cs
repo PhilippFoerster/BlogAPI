@@ -15,17 +15,15 @@ namespace BlogAPI.Controllers
     public class CommentController : ControllerBase
     {
         private readonly CommentService commentService;
-        private readonly UserService userService;
 
-        public CommentController(CommentService commentService, UserService userService)
+        public CommentController(CommentService commentService)
         {
             this.commentService = commentService;
-            this.userService = userService;
         }
 
         [HttpPost]
         [Route("comments")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin, Author, User")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin, author, user")]
         public async Task<IActionResult> PostComment(NewComment newComment)
         {
             if (newComment.HasNullProperty())
@@ -92,7 +90,7 @@ namespace BlogAPI.Controllers
 
         [HttpDelete]
         [Route("comments/{id}")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
         public async Task<IActionResult> DeleteComment(int? id)
         {
             if (id is null)
@@ -113,7 +111,7 @@ namespace BlogAPI.Controllers
 
         [HttpPost]
         [Route("comments/like")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin, Author, User")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin, author, user")]
         public async Task<IActionResult> LikeComment(LikeComment like)
         {
             if (like.HasNullProperty())

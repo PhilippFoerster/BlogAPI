@@ -17,8 +17,6 @@ namespace BlogAPI.Models.Respond
 
         public UserResponse CreatedBy { get; set; }
 
-        public IEnumerable<CommentResponse> Comments { get; set; }
-
         public IEnumerable<string> Topics { get; set; }
     }
 }

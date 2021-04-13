@@ -22,7 +22,7 @@ namespace BlogAPI.Controllers
 
         [HttpPost]
         [Route("articles")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin, Author")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin, author")]
         public async Task<IActionResult> PostArticle(NewArticle newArticle)
         {
             if (newArticle.HasNullProperty())
@@ -33,8 +33,7 @@ namespace BlogAPI.Controllers
                 await articleService.InsertArticle(article);
                 return CreatedAtAction("GetArticle", new { id = article.Id }, article.GetArticleResponse());
             }
-            catch(Exception e)
-            {
+            catch {
                 return StatusCode(500, "Error while creating article");
             }
         }
@@ -73,7 +72,7 @@ namespace BlogAPI.Controllers
 
         [HttpPut]
         [Route("articles")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin, Author")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin, author")]
         public async Task<IActionResult> ModifyArticle(UpdateArticle updateArticle)
         {
             try
@@ -81,8 +80,11 @@ namespace BlogAPI.Controllers
                 var article = await articleService.GetArticle(updateArticle.Id);
                 if (article is null)
                     return NotFound($"No article with id {updateArticle.Id} was found");
-                article.UpdateFrom(updateArticle);
+                article.Caption = updateArticle.Caption;
+                article.Image = updateArticle.Image;
+                article.Text = updateArticle.Text;
                 await articleService.UpdateArticle(article);
+                article.CreatedBy = await articleService.GetAuthor(article);
                 return CreatedAtAction("GetArticle", new { id = article.Id }, article.GetArticleResponse());
             }
             catch
@@ -94,7 +96,7 @@ namespace BlogAPI.Controllers
 
         [HttpDelete]
         [Route("articles/{id}")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
         public async Task<IActionResult> DeleteArticle(int? id)
         {
             if (id is null)

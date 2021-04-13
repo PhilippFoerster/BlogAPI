@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace BlogAPI.Models
+namespace BlogAPI.Models.Respond
 {
-    public class UpdateInterests
+    public class RolesResponse
     {
-        public List<string> Interests { get; set; }
+        public List<string> Roles { get; set; }
     }
 }
