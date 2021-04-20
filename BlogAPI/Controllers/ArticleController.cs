@@ -29,22 +29,22 @@ namespace BlogAPI.Controllers
                 return BadRequest("Missing properties!");
             try
             {
-                var article = await articleService.CreateArticle(newArticle, User.GetUserID());
+                var article = articleService.CreateArticle(newArticle, User.GetUserID());
                 await articleService.InsertArticle(article);
                 return CreatedAtAction("GetArticle", new { id = article.Id }, article.GetArticleResponse());
             }
-            catch {
+            catch (Exception e) {
                 return StatusCode(500, "Error while creating article");
             }
         }
 
         [HttpGet]
         [Route("articles")]
-        public async Task<IActionResult> GetArticles([FromQuery] List<string> topics)
+        public async Task<IActionResult> GetArticles([FromQuery] List<string> topics, [FromQuery] int page = 1)
         {
             try
             {
-                return Ok(await articleService.GetArticleResponses(topics));
+                return Ok(await articleService.GetArticleResponses(topics, page));
             }
             catch
             {

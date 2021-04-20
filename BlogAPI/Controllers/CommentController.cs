@@ -23,7 +23,7 @@ namespace BlogAPI.Controllers
 
         [HttpPost]
         [Route("comments")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin, author, user")]
+        [Authorize]
         public async Task<IActionResult> PostComment(NewComment newComment)
         {
             if (newComment.HasNullProperty())
@@ -111,7 +111,7 @@ namespace BlogAPI.Controllers
 
         [HttpPost]
         [Route("comments/like")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin, author, user")]
+        [Authorize]
         public async Task<IActionResult> LikeComment(LikeComment like)
         {
             if (like.HasNullProperty())

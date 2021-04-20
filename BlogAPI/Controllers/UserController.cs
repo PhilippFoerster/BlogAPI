@@ -72,7 +72,7 @@ namespace BlogAPI.Controllers
             try
             {
                 var roles = await userService.GetRoles(id);
-                return Ok(new RolesResponse{Roles = roles});
+                return Ok(new RolesResponse { Roles = roles });
             }
             catch
             {
@@ -95,10 +95,11 @@ namespace BlogAPI.Controllers
                 var intersect = userRoles.Intersect(roles.Roles).ToList();
                 var res = await userManager.AddToRolesAsync(user, roles.Roles.Except(intersect));
                 var res2 = await userManager.RemoveFromRolesAsync(user, userRoles.Except(intersect));
-                var errors = res.Errors.Concat(res2.Errors);
 
                 if (res.Succeeded)
-                    return CreatedAtAction("GetUserRoles", new { id = user.Id }, new RolesResponse{Roles = (await userManager.GetRolesAsync(user)).ToList()});
+                    return CreatedAtAction("GetUserRoles", new { id = user.Id }, new RolesResponse { Roles = (await userManager.GetRolesAsync(user)).ToList() });
+
+                var errors = res.Errors.Concat(res2.Errors);
                 return BadRequest(errors);
             }
             catch
@@ -116,7 +117,7 @@ namespace BlogAPI.Controllers
             try
             {
                 var interests = await userService.GetInterests(id);
-                return Ok(new InterestsResponse { Interests = interests.Select(x => x.Name).ToList()});
+                return Ok(new InterestsResponse { Interests = interests.Select(x => x.Name).ToList() });
             }
             catch
             {
@@ -125,10 +126,11 @@ namespace BlogAPI.Controllers
         }
 
         [HttpPost]
-        [Route("users/{id}/interests")]
-        //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")] //TODO
-        public async Task<IActionResult> UpdateInterests(string id, UpdateInterests interests)
+        [Route("users/interests")]
+        [Authorize]
+        public async Task<IActionResult> UpdateInterests(UpdateInterests interests)
         {
+            string id = User.GetUserID();
             try
             {
                 var user = await userService.GetUserWithInterests(id);
@@ -139,10 +141,10 @@ namespace BlogAPI.Controllers
 
                 await userService.UpdateTopics(user, user.Interests, newInterests);
 
-                return CreatedAtAction("GetUserInterests", new { id = user.Id }, new InterestsResponse { Interests = newInterests.Select(x => x.Name).ToList()});
+                return CreatedAtAction("GetUserInterests", new { id = user.Id }, new InterestsResponse { Interests = newInterests.Select(x => x.Name).ToList() });
 
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 return StatusCode(500, $"Error while modifying user {id}");
             }
@@ -180,7 +182,7 @@ namespace BlogAPI.Controllers
             try
             {
                 var user = await userManager.FindByNameAsync(login.User) ?? await userManager.FindByEmailAsync(login.User);
-                if(user is null)
+                if (user is null)
                     return NotFound("No user was found");
                 if (await userManager.CheckPasswordAsync(user, login.Password))
                     return Ok(await userService.GenerateJwt(user));

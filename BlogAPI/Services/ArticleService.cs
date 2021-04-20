@@ -19,20 +19,26 @@ namespace BlogAPI.Services
             this.blogContext = blogContext;
             this.userService = userService;
         }
-
+        //eyJhbGciOiJodHRwOi8vd3d3LnczLm9yZy8yMDAxLzA0L3htbGRzaWctbW9yZSNobWFjLXNoYTI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBZG1pbiIsImVtYWlsIjoiYWRtaW5AYWRtaW4uZGUiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJhZG1pbiIsImlkIjoiOGYzYjkzNTctNTRjNS00Mzc3LWI1YWQtMWNlZjBkMGIxMzZiIiwiZXhwIjoxNjE4OTU0NTI0LCJpc3MiOiJUZXN0LmNvbSIsImF1ZCI6IlRlc3QuY29tIn0.dqChmnd-HUXGywQX6cvGBsvNdPpc9YuHv96MoKGTt1Y
         public async Task InsertArticle(Article article)
         {
-            article.Topics.Where(x => blogContext.Topics.Any(t => x.Name == t.Name)).ToList().ForEach(x => blogContext.Topics.Attach(x));
+            blogContext.Attach(article.CreatedBy);
+            var existing = await blogContext.Topics.Where(x => article.Topics.Contains(x)).AsNoTracking().ToListAsync();
+            article.Topics.Intersect(existing, new TopicComparer()).ToList().ForEach(x => blogContext.Topics.Attach(x));
+            //article.Topics.Where(x => blogContext.Topics.Any(t => x.Name == t.Name)).ToList().ForEach(x => blogContext.Topics.Attach(x));
             await blogContext.Articles.AddAsync(article);
             await blogContext.SaveChangesAsync();
         }
 
 
-        public async Task<List<ArticleResponse>> GetArticleResponses(List<string> topics)
+        public async Task<List<ArticleResponse>> GetArticleResponses(List<string> topics, int page)
             => await blogContext.Articles.Include(x => x.CreatedBy)
                 .Include(x => x.Topics)
                 .If(topics.Count > 0, q => q.Where(x => x.Topics.Any(x => topics.Contains(x.Name))))
                 .SelectResponse()
+                .OrderByDescending(x => x.CreatedAt)
+                .Skip((page - 1) * 10)
+                .Take(10)
                 .ToListAsync();
 
         public async Task<Article> GetArticle(int id) => await blogContext.Articles.FirstOrDefaultAsync(x => x.Id == id);
@@ -47,12 +53,12 @@ namespace BlogAPI.Services
                 .SelectResponse()
                 .FirstOrDefaultAsync(x => x.Id == id);
 
-        public async Task<Article> CreateArticle(NewArticle newArticle, string userId)
+        public Article CreateArticle(NewArticle newArticle, string userId)
         {
             return new ()
             {
                 CreatedAt = DateTime.Now,
-                CreatedBy = await userService.GetUser(userId),
+                CreatedBy = new User{Id = userId},
                 Topics = newArticle.Topics.Select(x => new Topic { Name = x }).ToList(),
                 Caption = newArticle.Caption,
                 Text = newArticle.Text,

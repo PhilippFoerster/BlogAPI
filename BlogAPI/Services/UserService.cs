@@ -38,7 +38,6 @@ namespace BlogAPI.Services
 
         public async Task UpdateTopics(User user, List<Topic> oldTopics, List<Topic> newTopics)
         {
-            
             var comparer = new TopicComparer();
             user.Interests = oldTopics.Intersect(newTopics, comparer).ToList();
             var existing = await blogContext.Topics.Where(x => newTopics.Contains(x)).ToListAsync();
