@@ -40,6 +40,7 @@ namespace BlogAPI
             services.AddScoped<UserService>();
             services.AddScoped<ArticleService>();
             services.AddScoped<CommentService>();
+            services.AddScoped<TopicService>();
 
             services.AddIdentity<IdentityUser, IdentityRole>(options => options.User.RequireUniqueEmail = true)
                 .AddEntityFrameworkStores<BlogContext>();

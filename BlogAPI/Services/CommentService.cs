@@ -38,7 +38,12 @@ namespace BlogAPI.Services
             };
         }
 
-        public async Task<List<CommentResponse>> GetCommentResponses() => await blogContext.Comments.Include(x => x.CreatedBy).SelectResponse().ToListAsync();
+        public async Task<List<CommentResponse>> GetCommentResponses(int page, int pageSize, int? articleId = null) 
+            => await blogContext.Comments
+                .If(articleId is not null, q => q.Where(x => x.ArticleId == articleId))
+                .Skip((page - 1) * pageSize).Take(pageSize)
+                .Include(x => x.CreatedBy)
+                .SelectResponse().ToListAsync();
         public async Task<List<CommentResponse>> GetCommentResponses(int articleId) => await blogContext.Comments.Where(x => x.ArticleId == articleId).Include(x => x.CreatedBy).SelectResponse().ToListAsync();
 
         public async Task<Comment> GetCommentWithLikes(int id) => await blogContext.Comments.IncludeLikes().FirstOrDefaultAsync(x => x.Id == id);

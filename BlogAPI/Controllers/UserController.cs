@@ -27,7 +27,7 @@ namespace BlogAPI.Controllers
 
         [HttpPost]
         [Route("users")]
-        public async Task<IActionResult> PostUser(NewUser newUser)
+        public async Task<ActionResult<UserResponse>> PostUser(NewUser newUser)
         {
             if (newUser.HasNullProperty())
                 return BadRequest("Missing properties!");
@@ -48,7 +48,7 @@ namespace BlogAPI.Controllers
 
         [HttpGet]
         [Route("users/{id}")]
-        public async Task<IActionResult> GetUser(string id)
+        public async Task<ActionResult<UserResponse>> GetUser(string id)
         {
             if (id is null)
                 return BadRequest("Missing id");
@@ -65,7 +65,7 @@ namespace BlogAPI.Controllers
 
         [HttpGet]
         [Route("users/{id}/roles")]
-        public async Task<IActionResult> GetUserRoles(string id)
+        public async Task<ActionResult<RolesResponse>> GetUserRoles(string id)
         {
             if (id is null)
                 return BadRequest("Missing id");
@@ -83,7 +83,7 @@ namespace BlogAPI.Controllers
         [HttpPost]
         [Route("users/{id}/roles")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
-        public async Task<IActionResult> UpdateRoles(string id, UpdateRoles roles)
+        public async Task<ActionResult<RolesResponse>> UpdateRoles(string id, UpdateRoles roles)
         {
             try
             {
@@ -110,7 +110,7 @@ namespace BlogAPI.Controllers
 
         [HttpGet]
         [Route("users/{id}/interests")]
-        public async Task<IActionResult> GetUserInterests(string id)
+        public async Task<ActionResult<InterestsResponse>> GetUserInterests(string id)
         {
             if (id is null)
                 return BadRequest("Missing id");
@@ -128,7 +128,7 @@ namespace BlogAPI.Controllers
         [HttpPost]
         [Route("users/interests")]
         [Authorize]
-        public async Task<IActionResult> UpdateInterests(UpdateInterests interests)
+        public async Task<ActionResult<InterestsResponse>> UpdateInterests(UpdateInterests interests)
         {
             string id = User.GetUserID();
             try
@@ -175,7 +175,7 @@ namespace BlogAPI.Controllers
 
         [HttpPost]
         [Route("users/login")]
-        public async Task<IActionResult> Login(Login login)
+        public async Task<ActionResult<LoginResponse>> Login(Login login)
         {
             if (login.HasNullProperty())
                 return BadRequest("Missing properties!");
@@ -185,7 +185,7 @@ namespace BlogAPI.Controllers
                 if (user is null)
                     return NotFound("No user was found");
                 if (await userManager.CheckPasswordAsync(user, login.Password))
-                    return Ok(await userService.GenerateJwt(user));
+                    return Ok(new LoginResponse{Jwt = await userService.GenerateJwt(user)});
                 return Unauthorized("Wrong credentials");
 
             }

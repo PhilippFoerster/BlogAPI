@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlogAPI.Models.Respond;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 
@@ -23,7 +24,7 @@ namespace BlogAPI.Controllers
         [HttpPost]
         [Route("articles")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin, author")]
-        public async Task<IActionResult> PostArticle(NewArticle newArticle)
+        public async Task<ActionResult<ArticleResponse>> PostArticle(NewArticle newArticle)
         {
             if (newArticle.HasNullProperty())
                 return BadRequest("Missing properties!");
@@ -40,11 +41,26 @@ namespace BlogAPI.Controllers
 
         [HttpGet]
         [Route("articles")]
-        public async Task<IActionResult> GetArticles([FromQuery] List<string> topics, [FromQuery] int page = 1)
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin, author")]
+        public async Task<ActionResult<List<ArticleResponse>>> GetArticles([FromQuery] List<string> topics, [FromQuery] int page = 1, [FromQuery] int pageSize = 9)
         {
             try
             {
-                return Ok(await articleService.GetArticleResponses(topics, page));
+                return Ok(await articleService.GetArticleResponses(topics, page, pageSize));
+            }
+            catch
+            {
+                return StatusCode(500, "Error while getting articles");
+            }
+        }
+
+        [HttpGet]
+        [Route("articles/top")]
+        public async Task<ActionResult<List<ArticleResponse>>> GetTopArticles()
+        {
+            try
+            {
+                return Ok(await articleService.GetTopArticleResponses());
             }
             catch
             {
@@ -54,7 +70,7 @@ namespace BlogAPI.Controllers
 
         [HttpGet]
         [Route("articles/{id}")]
-        public async Task<IActionResult> GetArticle(int? id)
+        public async Task<ActionResult<ArticleResponse>> GetArticle(int? id)
         {
             if (id is null)
                 return BadRequest("Missing id");
@@ -73,7 +89,7 @@ namespace BlogAPI.Controllers
         [HttpPut]
         [Route("articles")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin, author")]
-        public async Task<IActionResult> ModifyArticle(UpdateArticle updateArticle)
+        public async Task<ActionResult<ArticleResponse>> ModifyArticle(UpdateArticle updateArticle)
         {
             try
             {

@@ -31,14 +31,21 @@ namespace BlogAPI.Services
         }
 
 
-        public async Task<List<ArticleResponse>> GetArticleResponses(List<string> topics, int page)
+        public async Task<List<ArticleResponse>> GetTopArticleResponses()
+            => await blogContext.Articles
+                .OrderByDescending(x => x.Comments.Count / (1 + EF.Functions.DateDiffDay(DateTime.Now, x.CreatedAt) / 30))
+                .SelectResponse()
+                .Take(4)
+                .ToListAsync();
+
+        public async Task<List<ArticleResponse>> GetArticleResponses(List<string> topics, int page, int pageSize)
             => await blogContext.Articles.Include(x => x.CreatedBy)
                 .Include(x => x.Topics)
                 .If(topics.Count > 0, q => q.Where(x => x.Topics.Any(x => topics.Contains(x.Name))))
                 .SelectResponse()
                 .OrderByDescending(x => x.CreatedAt)
-                .Skip((page - 1) * 10)
-                .Take(10)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
         public async Task<Article> GetArticle(int id) => await blogContext.Articles.FirstOrDefaultAsync(x => x.Id == id);

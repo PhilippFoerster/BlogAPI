@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using BlogAPI.Models;
+using BlogAPI.Models.Respond;
 using BlogAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -24,7 +25,7 @@ namespace BlogAPI.Controllers
         [HttpPost]
         [Route("comments")]
         [Authorize]
-        public async Task<IActionResult> PostComment(NewComment newComment)
+        public async Task<ActionResult<CommentResponse>> PostComment(NewComment newComment)
         {
             if (newComment.HasNullProperty())
                 return BadRequest("Missing properties!");
@@ -42,11 +43,11 @@ namespace BlogAPI.Controllers
 
         [HttpGet]
         [Route("comments")]
-        public async Task<IActionResult> GetComments()
+        public async Task<ActionResult<List<CommentResponse>>> GetComments([FromQuery] int page = 1, [FromQuery] int pageSize = 9)
         {
             try
             {
-                return Ok(await commentService.GetCommentResponses());
+                return Ok(await commentService.GetCommentResponses(page, pageSize));
             }
             catch
             {
@@ -56,13 +57,13 @@ namespace BlogAPI.Controllers
 
         [HttpGet]
         [Route("articles/{articleId}/comments")]
-        public async Task<IActionResult> GetComments(int? articleId)
+        public async Task<ActionResult<List<CommentResponse>>> GetComments(int? articleId, [FromQuery] int page = 1, [FromQuery] int pageSize = 9)
         {
             if (articleId is null)
                 return BadRequest("Missing id");
             try
             {
-                var comments = await commentService.GetCommentResponses((int)articleId);
+                var comments = await commentService.GetCommentResponses(page, pageSize,(int)articleId);
                 return comments is not null ? Ok(comments) : NotFound($"No comment related to article {articleId} was found");
             }
             catch
@@ -73,7 +74,7 @@ namespace BlogAPI.Controllers
 
         [HttpGet]
         [Route("comments/{id}")]
-        public async Task<IActionResult> GetComment(int? id)
+        public async Task<ActionResult<CommentResponse>> GetComment(int? id)
         {
             if (id is null)
                 return BadRequest("Missing id");
@@ -90,7 +91,7 @@ namespace BlogAPI.Controllers
 
         [HttpDelete]
         [Route("comments/{id}")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "author, admin")]
         public async Task<IActionResult> DeleteComment(int? id)
         {
             if (id is null)
@@ -112,7 +113,7 @@ namespace BlogAPI.Controllers
         [HttpPost]
         [Route("comments/like")]
         [Authorize]
-        public async Task<IActionResult> LikeComment(LikeComment like)
+        public async Task<ActionResult<CommentResponse>> LikeComment(LikeComment like)
         {
             if (like.HasNullProperty())
                 return BadRequest("Missing properties!");
