@@ -21,6 +21,7 @@ namespace BlogAPI.Models
         public string Caption { get; set; }
 
         [Required]
+        [MaxLength(Settings.ArticleTextLength)]
         public string Text { get; set; }
 
         [Required]

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using BlogAPI.Models;
@@ -7,10 +8,13 @@ using BlogAPI.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
+using BlogAPI.Models.Request;
 using BlogAPI.Models.Respond;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Validations;
+using Type = BlogAPI.Models.Request.Type;
 
 namespace BlogAPI.Controllers
 {
@@ -29,20 +33,20 @@ namespace BlogAPI.Controllers
         [Route("users")]
         public async Task<ActionResult<UserResponse>> PostUser(NewUser newUser)
         {
-            if (newUser.HasNullProperty())
-                return BadRequest("Missing properties!");
+            if (!ModelState.IsValid)
+                return BadRequest(new Answer(ModelState.GetErrors(), Type.InvalidModel));
             try
             {
                 var user = new User { Email = newUser.Mail, UserName = newUser.Username };
                 var res = await userManager.CreateAsync(user, newUser.Password);
                 if (res.Succeeded)
                     return CreatedAtAction("GetUser", new { id = user.Id }, user.GetUserResponse());
-                return BadRequest(res.Errors);
+                return BadRequest(new Answer(res.Errors.Select(x => x.Description).ToList()));
 
             }
             catch
             {
-                return StatusCode(500, "Error while creating new user");
+                return StatusCode(500, new Answer("Error while creating new user"));
             }
         }
 
@@ -50,8 +54,6 @@ namespace BlogAPI.Controllers
         [Route("users/{id}")]
         public async Task<ActionResult<UserResponse>> GetUser(string id)
         {
-            if (id is null)
-                return BadRequest("Missing id");
             try
             {
                 var user = await userService.GetUserResponse(id);
@@ -59,7 +61,7 @@ namespace BlogAPI.Controllers
             }
             catch
             {
-                return StatusCode(500, $"Error while getting user {id}");
+                return StatusCode(500, new Answer($"Error while getting user {id}"));
             }
         }
 
@@ -67,8 +69,6 @@ namespace BlogAPI.Controllers
         [Route("users/{id}/roles")]
         public async Task<ActionResult<RolesResponse>> GetUserRoles(string id)
         {
-            if (id is null)
-                return BadRequest("Missing id");
             try
             {
                 var roles = await userService.GetRoles(id);
@@ -76,7 +76,7 @@ namespace BlogAPI.Controllers
             }
             catch
             {
-                return StatusCode(500, $"Error while getting roles of user {id}");
+                return StatusCode(500, new Answer($"Error while getting roles of user {id}"));
             }
         }
 
@@ -85,11 +85,13 @@ namespace BlogAPI.Controllers
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
         public async Task<ActionResult<RolesResponse>> UpdateRoles(string id, UpdateRoles roles)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(new Answer(ModelState.GetErrors(), Type.InvalidModel));
             try
             {
                 var user = await userService.GetUser(id);
                 if (user is null)
-                    return NotFound($"No user with id {id} was found");
+                    return NotFound(new Answer($"No user with id {id} was found"));
 
                 var userRoles = await userManager.GetRolesAsync(user);
                 var intersect = userRoles.Intersect(roles.Roles).ToList();
@@ -100,11 +102,11 @@ namespace BlogAPI.Controllers
                     return CreatedAtAction("GetUserRoles", new { id = user.Id }, new RolesResponse { Roles = (await userManager.GetRolesAsync(user)).ToList() });
 
                 var errors = res.Errors.Concat(res2.Errors);
-                return BadRequest(errors);
+                return BadRequest(new Answer(errors.Select(x => x.Description).ToList()));
             }
             catch
             {
-                return StatusCode(500, $"Error while modifying user {id}");
+                return StatusCode(500, new Answer($"Error while modifying user {id}"));
             }
         }
 
@@ -112,8 +114,6 @@ namespace BlogAPI.Controllers
         [Route("users/{id}/interests")]
         public async Task<ActionResult<InterestsResponse>> GetUserInterests(string id)
         {
-            if (id is null)
-                return BadRequest("Missing id");
             try
             {
                 var interests = await userService.GetInterests(id);
@@ -121,7 +121,7 @@ namespace BlogAPI.Controllers
             }
             catch
             {
-                return StatusCode(500, $"Error while getting interests of user {id}");
+                return StatusCode(500, new Answer($"Error while getting interests of user {id}"));
             }
         }
 
@@ -130,12 +130,14 @@ namespace BlogAPI.Controllers
         [Authorize]
         public async Task<ActionResult<InterestsResponse>> UpdateInterests(UpdateInterests interests)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(new Answer(ModelState.GetErrors(), Type.InvalidModel));
             string id = User.GetUserID();
             try
             {
-                var user = await userService.GetUserWithInterests(id);
+                var user = await userService.GetUser(id, q => q.Include(x => x.Interests));
                 if (user is null)
-                    return NotFound($"No user with id {id} was found");
+                    return NotFound(new Answer($"No user with id {id} was found"));
 
                 var newInterests = interests.Interests.Select(x => new Topic { Name = x }).ToList();
 
@@ -155,21 +157,19 @@ namespace BlogAPI.Controllers
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
         public async Task<IActionResult> DeleteUser(string id)
         {
-            if (id is null)
-                return BadRequest("Missing id");
             try
             {
                 var user = await userManager.FindByIdAsync(id);
                 if (user is null)
-                    return NotFound($"No user with id {id} was found");
+                    return NotFound(new Answer($"No user with id {id} was found"));
                 var res = await userManager.DeleteAsync(user);
                 if (res.Succeeded)
                     return NoContent();
-                return BadRequest(res.Errors);
+                return BadRequest(new Answer(res.Errors.Select(x => x.Description).ToList()));
             }
             catch
             {
-                return StatusCode(500, "Error while deleting user");
+                return StatusCode(500, new Answer("Error while deleting user"));
             }
         }
 
@@ -177,21 +177,18 @@ namespace BlogAPI.Controllers
         [Route("users/login")]
         public async Task<ActionResult<LoginResponse>> Login(Login login)
         {
-            if (login.HasNullProperty())
-                return BadRequest("Missing properties!");
+            if (!ModelState.IsValid)
+                return BadRequest(new Answer(ModelState.GetErrors(), Type.InvalidModel));
             try
             {
                 var user = await userManager.FindByNameAsync(login.User) ?? await userManager.FindByEmailAsync(login.User);
-                if (user is null)
-                    return NotFound("No user was found");
-                if (await userManager.CheckPasswordAsync(user, login.Password))
+                if (user is not null && await userManager.CheckPasswordAsync(user, login.Password))
                     return Ok(new LoginResponse{Jwt = await userService.GenerateJwt(user)});
-                return Unauthorized("Wrong credentials");
-
+                return Unauthorized(new Answer("Username or password is wrong!"));
             }
             catch
             {
-                return StatusCode(500, "Error while creating new user");
+                return StatusCode(500, new Answer("Error while creating new user"));
             }
         }
     }

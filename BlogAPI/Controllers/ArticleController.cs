@@ -4,10 +4,13 @@ using BlogAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using BlogAPI.Models.Request;
 using BlogAPI.Models.Respond;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Type = BlogAPI.Models.Request.Type;
 
 namespace BlogAPI.Controllers
 {
@@ -26,8 +29,8 @@ namespace BlogAPI.Controllers
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin, author")]
         public async Task<ActionResult<ArticleResponse>> PostArticle(NewArticle newArticle)
         {
-            if (newArticle.HasNullProperty())
-                return BadRequest("Missing properties!");
+            if (!ModelState.IsValid)
+                return BadRequest(new Answer(ModelState.GetErrors(), Type.InvalidModel));
             try
             {
                 var article = articleService.CreateArticle(newArticle, User.GetUserID());
@@ -35,14 +38,13 @@ namespace BlogAPI.Controllers
                 return CreatedAtAction("GetArticle", new { id = article.Id }, article.GetArticleResponse());
             }
             catch (Exception e) {
-                return StatusCode(500, "Error while creating article");
+                return StatusCode(500, new Answer("Error while creating article"));
             }
         }
 
         [HttpGet]
         [Route("articles")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin, author")]
-        public async Task<ActionResult<List<ArticleResponse>>> GetArticles([FromQuery] List<string> topics, [FromQuery] int page = 1, [FromQuery] int pageSize = 9)
+        public async Task<ActionResult<ArticlesResponse>> GetArticles([FromQuery] List<string> topics, [FromQuery] int page = 1, [FromQuery] int pageSize = 9)
         {
             try
             {
@@ -50,7 +52,7 @@ namespace BlogAPI.Controllers
             }
             catch
             {
-                return StatusCode(500, "Error while getting articles");
+                return StatusCode(500, new Answer("Error while getting articles"));
             }
         }
 
@@ -64,24 +66,22 @@ namespace BlogAPI.Controllers
             }
             catch
             {
-                return StatusCode(500, "Error while getting articles");
+                return StatusCode(500, new Answer("Error while getting articles"));
             }
         }
 
         [HttpGet]
         [Route("articles/{id}")]
-        public async Task<ActionResult<ArticleResponse>> GetArticle(int? id)
+        public async Task<ActionResult<ArticleResponse>> GetArticle(int id)
         {
-            if (id is null)
-                return BadRequest("Missing id");
             try
             {
-                var article = await articleService.GetArticleResponse((int)id);
-                return article is not null ? Ok(article) : NotFound($"No article with id {id} was found");
+                var article = await articleService.GetArticleResponse(id);
+                return article is not null ? Ok(article) : NotFound(new Answer($"No article with id {id} was found"));
             }
             catch
             {
-                return StatusCode(500, $"Error while getting Article {id}");
+                return StatusCode(500, new Answer($"Error while getting Article {id}"));
             }
         }
 
@@ -91,11 +91,13 @@ namespace BlogAPI.Controllers
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin, author")]
         public async Task<ActionResult<ArticleResponse>> ModifyArticle(UpdateArticle updateArticle)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(new Answer(ModelState.GetErrors(), Type.InvalidModel));
             try
             {
                 var article = await articleService.GetArticle(updateArticle.Id);
                 if (article is null)
-                    return NotFound($"No article with id {updateArticle.Id} was found");
+                    return NotFound(new Answer($"No article with id {updateArticle.Id} was found"));
                 article.Caption = updateArticle.Caption;
                 article.Image = updateArticle.Image;
                 article.Text = updateArticle.Text;
@@ -105,7 +107,7 @@ namespace BlogAPI.Controllers
             }
             catch
             {
-                return StatusCode(500, $"Error while modifying article {updateArticle.Id}");
+                return StatusCode(500, new Answer($"Error while modifying article {updateArticle.Id}"));
             }
         }
 
@@ -113,21 +115,19 @@ namespace BlogAPI.Controllers
         [HttpDelete]
         [Route("articles/{id}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
-        public async Task<IActionResult> DeleteArticle(int? id)
+        public async Task<IActionResult> DeleteArticle(int id)
         {
-            if (id is null)
-                return BadRequest("Missing id");
             try
             {
                 var article = await articleService.GetArticle((int)id);
                 if (article is null)
-                    return NotFound($"No article with id {id} was found");
+                    return NotFound(new Answer($"No article with id {id} was found"));
                 await articleService.DeleteArticle(article);
                 return NoContent();
             }
             catch
             {
-                return StatusCode(500, "Error while deleting article");
+                return StatusCode(500, new Answer("Error while deleting article"));
             }
         }
     }

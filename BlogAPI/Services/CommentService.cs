@@ -33,22 +33,21 @@ namespace BlogAPI.Services
             {
                 CreatedBy = await userService.GetUser(user),
                 CreatedAt = DateTime.Now,
-                ArticleId = (int)newComment.ArticleId,
+                ArticleId = newComment.ArticleId,
                 Text = newComment.Text
             };
         }
 
-        public async Task<List<CommentResponse>> GetCommentResponses(int page, int pageSize, int? articleId = null) 
+        public async Task<List<CommentResponse>> GetCommentResponses(string userId, int page, int pageSize, int? articleId = null) 
             => await blogContext.Comments
                 .If(articleId is not null, q => q.Where(x => x.ArticleId == articleId))
                 .Skip((page - 1) * pageSize).Take(pageSize)
                 .Include(x => x.CreatedBy)
-                .SelectResponse().ToListAsync();
-        public async Task<List<CommentResponse>> GetCommentResponses(int articleId) => await blogContext.Comments.Where(x => x.ArticleId == articleId).Include(x => x.CreatedBy).SelectResponse().ToListAsync();
+                .SelectResponse(userId).ToListAsync();
 
-        public async Task<Comment> GetCommentWithLikes(int id) => await blogContext.Comments.IncludeLikes().FirstOrDefaultAsync(x => x.Id == id);
+        public async Task<Comment> GetComment(int id, Func<IQueryable<Comment>, IQueryable<Comment>> func) => await blogContext.Comments.Apply(func).FirstOrDefaultAsync(x => x.Id == id);
         public async Task<Comment> GetComment(int id) => await blogContext.Comments.FirstOrDefaultAsync(x => x.Id == id);
-        public async Task<CommentResponse> GetCommentResponse(int id) => await blogContext.Comments.Include(x => x.CreatedBy).SelectResponse().FirstOrDefaultAsync(x => x.Id == id);
+        public async Task<CommentResponse> GetCommentResponse(int id, string userId) => await blogContext.Comments.Include(x => x.CreatedBy).SelectResponse(userId).FirstOrDefaultAsync(x => x.Id == id);
 
         public async Task DeleteComment(Comment comment)
         {
@@ -59,12 +58,12 @@ namespace BlogAPI.Services
         public async Task<Comment> LikeComment(Comment comment, string userId, bool liked)
         {
             var user = new User { Id = userId };
-            var hasLiked = await blogContext.Comments.Where(x => x.Id == comment.Id && x.LikedBy.Any(x => x.Id == user.Id)).FirstOrDefaultAsync() is not null;
+            var hasLiked = await blogContext.Comments.AnyAsync(x => x.Id == comment.Id && x.LikedBy.Any(x => x.Id == user.Id));
             Action action = null;
             if (!hasLiked && liked)
             {
-                comment.LikedBy = new List<User>();
                 action = () => comment.LikedBy.Add(user);
+                comment.LikedBy = new List<User>();
                 comment.Likes++;
             }
             else if (hasLiked && !liked)
@@ -75,8 +74,8 @@ namespace BlogAPI.Services
             }
             if (action is null)
                 return null;
-            blogContext.Attach(comment);
             blogContext.Attach(user);
+            blogContext.Attach(comment);
             action();
             await blogContext.SaveChangesAsync();
             return comment;

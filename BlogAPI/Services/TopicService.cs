@@ -25,5 +25,6 @@ namespace BlogAPI.Services
                 .ToListAsync();
             return new TopicResponse {Topics = topics.Select(x => x.Name).ToList()};
         }
+
     }
 }

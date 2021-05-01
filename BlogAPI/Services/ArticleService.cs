@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using BlogAPI.Models.Respond;
 using Microsoft.AspNetCore.Identity;
@@ -30,6 +31,8 @@ namespace BlogAPI.Services
             await blogContext.SaveChangesAsync();
         }
 
+        public async Task<bool> ArticleExists(int id) => await blogContext.Articles.AnyAsync(x => x.Id == id);
+
 
         public async Task<List<ArticleResponse>> GetTopArticleResponses()
             => await blogContext.Articles
@@ -38,16 +41,27 @@ namespace BlogAPI.Services
                 .Take(4)
                 .ToListAsync();
 
-        public async Task<List<ArticleResponse>> GetArticleResponses(List<string> topics, int page, int pageSize)
-            => await blogContext.Articles.Include(x => x.CreatedBy)
+        public async Task<ArticlesResponse> GetArticleResponses(List<string> topics, int page, int pageSize)
+        {
+            var articles = blogContext.Articles.Include(x => x.CreatedBy)
                 .Include(x => x.Topics)
                 .If(topics.Count > 0, q => q.Where(x => x.Topics.Any(x => topics.Contains(x.Name))))
                 .SelectResponse()
                 .OrderByDescending(x => x.CreatedAt)
                 .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+                .Take(pageSize);
 
+            var res = new ArticlesResponse {Articles = await articles.ToListAsync(), TotalCount = await blogContext.Articles.CountAsync()};
+
+            res.Articles.ForEach(article =>
+            {
+                if (article.Text.Length > 200)
+                    article.Text = article.Text.Substring(0, 197) + "...";
+            });
+            return res;
+        }
+
+        public async Task<Article> GetArticle(int id, Func<IQueryable<Article>, IQueryable<Article>> func) => await blogContext.Articles.Apply(func).FirstOrDefaultAsync(x => x.Id == id);
         public async Task<Article> GetArticle(int id) => await blogContext.Articles.FirstOrDefaultAsync(x => x.Id == id);
 
         public async Task<User> GetAuthor(Article article) 

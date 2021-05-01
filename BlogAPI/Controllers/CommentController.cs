@@ -4,11 +4,14 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using BlogAPI.Models;
+using BlogAPI.Models.Request;
 using BlogAPI.Models.Respond;
 using BlogAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Type = BlogAPI.Models.Request.Type;
 
 namespace BlogAPI.Controllers
 {
@@ -17,9 +20,16 @@ namespace BlogAPI.Controllers
     {
         private readonly CommentService commentService;
 
-        public CommentController(CommentService commentService)
+        private readonly ArticleService articleService;
+
+        private readonly UserService userService;
+
+
+        public CommentController(CommentService commentService, ArticleService articleService, UserService userService)
         {
             this.commentService = commentService;
+            this.articleService = articleService;
+            this.userService = userService;
         }
 
         [HttpPost]
@@ -27,17 +37,20 @@ namespace BlogAPI.Controllers
         [Authorize]
         public async Task<ActionResult<CommentResponse>> PostComment(NewComment newComment)
         {
-            if (newComment.HasNullProperty())
-                return BadRequest("Missing properties!");
+            if (!ModelState.IsValid)
+                return BadRequest(new Answer (ModelState.GetErrors(), Type.InvalidModel));
             try
             {
+                var articleExists = await articleService.ArticleExists(newComment.ArticleId);
+                if (!articleExists)
+                    return NotFound(new Answer($"No article with id {newComment.ArticleId} was found"));
                 var comment = await commentService.CreateComment(newComment, User.GetUserID());
                 await commentService.InsertComment(comment);
                 return CreatedAtAction("GetComment", new { id = comment.Id }, comment.GetCommentResponse());
             }
-            catch
+            catch (Exception e)
             {
-                return StatusCode(500, "Error while creating comment");
+                return StatusCode(500, new Answer("Error while creating comment"));
             }
         }
 
@@ -47,66 +60,63 @@ namespace BlogAPI.Controllers
         {
             try
             {
-                return Ok(await commentService.GetCommentResponses(page, pageSize));
+                return Ok(await commentService.GetCommentResponses(User.GetUserID(), page, pageSize));
             }
             catch
             {
-                return StatusCode(500, $"Error while getting comments");
+                return StatusCode(500, new Answer("Error while getting comments"));
             }
         }
 
         [HttpGet]
         [Route("articles/{articleId}/comments")]
-        public async Task<ActionResult<List<CommentResponse>>> GetComments(int? articleId, [FromQuery] int page = 1, [FromQuery] int pageSize = 9)
+        public async Task<ActionResult<List<CommentResponse>>> GetComments(int articleId, [FromQuery] int page = 1, [FromQuery] int pageSize = 9)
         {
-            if (articleId is null)
-                return BadRequest("Missing id");
             try
             {
-                var comments = await commentService.GetCommentResponses(page, pageSize,(int)articleId);
-                return comments is not null ? Ok(comments) : NotFound($"No comment related to article {articleId} was found");
+                var articleExists = await articleService.ArticleExists(articleId);
+                if (!articleExists)
+                    return NotFound(new Answer($"No article with id {articleId} was found"));
+                var comments = await commentService.GetCommentResponses(User.GetUserID(), page, pageSize, (int)articleId);
+                return comments is not null ? Ok(comments) : NotFound(new Answer($"No comment related to article {articleId} was found"));
             }
             catch
             {
-                return StatusCode(500, $"Error while getting comments of article {articleId}");
+                return StatusCode(500, new Answer($"Error while getting comments of article {articleId}"));
             }
         }
 
         [HttpGet]
         [Route("comments/{id}")]
-        public async Task<ActionResult<CommentResponse>> GetComment(int? id)
+        public async Task<ActionResult<CommentResponse>> GetComment(int id)
         {
-            if (id is null)
-                return BadRequest("Missing id");
             try
             {
-                var comment = await commentService.GetCommentResponse((int)id);
-                return comment is not null ? Ok(comment) : NotFound($"No comment with id {id} was found");
+                var comment = await commentService.GetCommentResponse(id, User.GetUserID());
+                return comment is not null ? Ok(comment) : NotFound(new Answer($"No comment with id {id} was found"));
             }
             catch
             {
-                return StatusCode(500, $"Error while getting comment {id}");
+                return StatusCode(500, new Answer($"Error while getting comment {id}"));
             }
         }
 
         [HttpDelete]
         [Route("comments/{id}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "author, admin")]
-        public async Task<IActionResult> DeleteComment(int? id)
+        public async Task<IActionResult> DeleteComment(int id)
         {
-            if (id is null)
-                return BadRequest("Missing id");
             try
             {
-                var comment = await commentService.GetComment((int)id);
+                var comment = await commentService.GetComment(id);
                 if (comment is null)
-                    return NotFound($"No comment with id {id} was found");
+                    return NotFound(new Answer($"No comment with id {id} was found"));
                 await commentService.DeleteComment(comment);
                 return NoContent();
             }
             catch
             {
-                return StatusCode(500, "Error while deleting comment");
+                return StatusCode(500, new Answer("Error while deleting comment"));
             }
         }
 
@@ -115,21 +125,24 @@ namespace BlogAPI.Controllers
         [Authorize]
         public async Task<ActionResult<CommentResponse>> LikeComment(LikeComment like)
         {
-            if (like.HasNullProperty())
-                return BadRequest("Missing properties!");
-            var comment = await commentService.GetCommentWithLikes((int) like.CommentId);
-            if(comment is null)
-                return NotFound($"No comment with id {like.CommentId} was found");
-            string text = (bool)like.Liked ? "like" : "dislike";
+            if (!ModelState.IsValid)
+                return BadRequest(new Answer(ModelState.GetErrors(), Type.InvalidModel));
+            var comment = await commentService.GetComment(like.CommentId, q => q.IncludeLikes());
+            if (comment is null)
+                return NotFound(new Answer($"No comment with id {like.CommentId} was found"));
+            var createdBy = await userService.GetUser(comment.CreatedById, q => q.AsNoTracking());
             try
             {
                 var userId = User.GetUserID();
-                comment = await commentService.LikeComment(comment, userId, (bool)like.Liked);
-                return comment is not null ? Ok(comment.GetCommentResponse()) : StatusCode(304);
+                comment = await commentService.LikeComment(comment, userId, like.Liked);
+                if (comment is null)
+                    return StatusCode(304, new Answer($"The comment was already {(like.Liked ? "liked" : "disliked")}", Type.Info));
+                comment.CreatedBy = createdBy;
+                return Ok(comment.GetCommentResponse(like.Liked));
             }
             catch
             {
-                return StatusCode(500, $"Error while trying to {text} comment");
+                return StatusCode(500, new Answer($"Error while trying to {(like.Liked ? "like" : "dislike")} comment"));
             }
         }
     }

@@ -13,6 +13,8 @@ namespace BlogAPI.Models
         public int Id { get; set; }
 
         [Required]
+        [MaxLength(Settings.CommentTextLength)]
+
         public string Text { get; set; }
         public DateTime CreatedAt { get; set; }
 
@@ -33,6 +35,6 @@ namespace BlogAPI.Models
         public int Likes { get; set; }
 
 
-        public CommentResponse GetCommentResponse() => new() {ArticleId = ArticleId, Text = Text, CreatedAt = CreatedAt, CreatedBy = CreatedBy.GetUserResponse(), Id = Id, Likes = Likes};
+        public CommentResponse GetCommentResponse(bool liked = false) => new() {ArticleId = ArticleId, Text = Text, CreatedAt = CreatedAt, CreatedBy = CreatedBy?.GetUserResponse(), Id = Id, Likes = Likes, Liked = liked};
     }
 }

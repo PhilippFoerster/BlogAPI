@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 namespace BlogAPI.Models.Respond
 {
     public class ArticleResponse
-    { public int Id { get; set; }
+    { 
+        public int Id { get; set; }
         public string Image { get; set; }
 
         public string Caption { get; set; }

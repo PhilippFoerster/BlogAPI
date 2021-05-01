@@ -47,6 +47,8 @@ namespace BlogAPI
 
             services.AddCors(x => x.AddPolicy("AllowAll", builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
 
+            services.Configure<ApiBehaviorOptions>(options => options.SuppressModelStateInvalidFilter = true);
+
 
             services.AddAuthentication(options =>
             {

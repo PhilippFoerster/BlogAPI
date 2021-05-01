@@ -18,5 +18,7 @@ namespace BlogAPI.Models.Respond
         public UserResponse CreatedBy { get; set; }
 
         public int Likes { get; set; }
+
+        public bool? Liked { get; set; }
     }
 }

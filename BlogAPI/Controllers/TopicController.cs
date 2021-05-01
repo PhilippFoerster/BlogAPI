@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlogAPI.Models.Request;
 using BlogAPI.Models.Respond;
 using BlogAPI.Services;
 
@@ -27,7 +28,7 @@ namespace BlogAPI.Controllers
             }
             catch
             {
-                return StatusCode(500, "Error while getting topics");
+                return StatusCode(500, new Answer("Error while getting topics"));
             }
         }
     }

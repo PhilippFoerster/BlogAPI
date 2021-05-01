@@ -31,10 +31,8 @@ namespace BlogAPI.Services
         
         public async Task<UserResponse> GetUserResponse(string id) => await blogContext.Users.Include(x => x.Interests).SelectResponse().FirstOrDefaultAsync(x => x.Id == id);
 
-        public async Task<User> GetUser(string id) =>
-            await blogContext.Users.FirstOrDefaultAsync(x => x.Id == id);
-        public async Task<User> GetUserWithInterests(string id) =>
-            await blogContext.Users.Include(x => x.Interests).FirstOrDefaultAsync(x => x.Id == id);
+        public async Task<User> GetUser(string id, Func<IQueryable<User>, IQueryable<User>> func) => await blogContext.Users.Apply(func).FirstOrDefaultAsync(x => x.Id == id);
+        public async Task<User> GetUser(string id) => await blogContext.Users.FirstOrDefaultAsync(x => x.Id == id);
 
         public async Task UpdateTopics(User user, List<Topic> oldTopics, List<Topic> newTopics)
         {
