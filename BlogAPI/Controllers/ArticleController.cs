@@ -33,6 +33,7 @@ namespace BlogAPI.Controllers
                 return BadRequest(new Answer(ModelState.GetErrors(), Type.InvalidModel));
             try
             {
+                newArticle.Topics = newArticle.Topics.Distinct().ToList();
                 var article = articleService.CreateArticle(newArticle, User.GetUserID());
                 await articleService.InsertArticle(article);
                 return CreatedAtAction("GetArticle", new { id = article.Id }, article.GetArticleResponse());
@@ -98,9 +99,12 @@ namespace BlogAPI.Controllers
                 var article = await articleService.GetArticle(updateArticle.Id);
                 if (article is null)
                     return NotFound(new Answer($"No article with id {updateArticle.Id} was found"));
+                if (!User.IsInRole("admin") && article.CreatedBy.Id != User.GetUserID())
+                    return Unauthorized();
                 article.Caption = updateArticle.Caption;
-                article.Image = updateArticle.Image;
+                article.Image = updateArticle.Image ?? "";
                 article.Text = updateArticle.Text;
+                article.Topics = updateArticle.Topics?.Select(x => new Topic{Name = x}).ToList() ?? new List<Topic>();
                 await articleService.UpdateArticle(article);
                 article.CreatedBy = await articleService.GetAuthor(article);
                 return CreatedAtAction("GetArticle", new { id = article.Id }, article.GetArticleResponse());

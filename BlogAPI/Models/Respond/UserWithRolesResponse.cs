@@ -5,9 +5,10 @@ using System.Threading.Tasks;
 
 namespace BlogAPI.Models.Respond
 {
-    public class LoginResponse
+    public class UserWithRolesResponse
     {
-        public string Jwt { get; set; }
-        public string RefreshToken { get; set; }
+        public UserResponse User { get; set; }
+
+        public RolesResponse Roles { get; set; }
     }
 }

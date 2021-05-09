@@ -13,7 +13,7 @@ namespace BlogAPI.Models
         public int Id { get; set; }
 
         [Required]
-        [MaxLength(Settings.CommentTextLength)]
+        [MaxLength(Settings.CommentTextMaxLength)]
 
         public string Text { get; set; }
         public DateTime CreatedAt { get; set; }

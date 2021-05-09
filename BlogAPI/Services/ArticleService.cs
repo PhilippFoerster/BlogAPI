@@ -37,6 +37,7 @@ namespace BlogAPI.Services
         public async Task<List<ArticleResponse>> GetTopArticleResponses()
             => await blogContext.Articles
                 .OrderByDescending(x => x.Comments.Count / (1 + EF.Functions.DateDiffDay(DateTime.Now, x.CreatedAt) / 30))
+                .ThenByDescending(x => x.CreatedAt)
                 .SelectResponse()
                 .Take(4)
                 .ToListAsync();
@@ -51,7 +52,7 @@ namespace BlogAPI.Services
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize);
 
-            var res = new ArticlesResponse {Articles = await articles.ToListAsync(), TotalCount = await blogContext.Articles.CountAsync()};
+            var res = new ArticlesResponse {Articles = await articles.ToListAsync(), TotalCount = await blogContext.Articles.If(topics.Count > 0, q => q.Where(x => x.Topics.Any(x => topics.Contains(x.Name)))).CountAsync()};
 
             res.Articles.ForEach(article =>
             {
@@ -95,6 +96,8 @@ namespace BlogAPI.Services
 
         public async Task UpdateArticle(Article article)
         {
+            var existing = await blogContext.Topics.Where(x => article.Topics.Contains(x)).AsNoTracking().ToListAsync();
+            article.Topics.Intersect(existing, new TopicComparer()).ToList().ForEach(x => blogContext.Topics.Attach(x));
             blogContext.Articles.Update(article);
             await blogContext.SaveChangesAsync();
         }

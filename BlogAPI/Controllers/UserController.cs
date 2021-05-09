@@ -51,6 +51,23 @@ namespace BlogAPI.Controllers
         }
 
         [HttpGet]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
+        [Route("users")]
+        public async Task<ActionResult<List<UserWithRolesResponse>>> GetUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 9)
+        {
+            try
+            {
+                var users = await userService.GetUsers(page, pageSize);
+                var result = await Task.WhenAll(users.Select(async x => new UserWithRolesResponse { User = x, Roles = new RolesResponse { Roles = await userService.GetRoles(x.Id) } }));
+                return Ok(result);
+            }
+            catch
+            {
+                return StatusCode(500, new Answer("Error while getting users"));
+            }
+        }
+
+        [HttpGet]
         [Route("users/{id}")]
         public async Task<ActionResult<UserResponse>> GetUser(string id)
         {
@@ -135,6 +152,7 @@ namespace BlogAPI.Controllers
             string id = User.GetUserID();
             try
             {
+                interests.Interests = interests.Interests.Distinct().ToList();
                 var user = await userService.GetUser(id, q => q.Include(x => x.Interests));
                 if (user is null)
                     return NotFound(new Answer($"No user with id {id} was found"));
@@ -181,14 +199,38 @@ namespace BlogAPI.Controllers
                 return BadRequest(new Answer(ModelState.GetErrors(), Type.InvalidModel));
             try
             {
-                var user = await userManager.FindByNameAsync(login.User) ?? await userManager.FindByEmailAsync(login.User);
+                var user = await userService.GetUserByNameOrMail(login.User);
                 if (user is not null && await userManager.CheckPasswordAsync(user, login.Password))
-                    return Ok(new LoginResponse{Jwt = await userService.GenerateJwt(user)});
+                {
+                    var (jwt, refreshToken) = await userService.GenerateJwt(user);
+                    return Ok(new LoginResponse { Jwt = jwt, RefreshToken = refreshToken.Token });
+                }
                 return Unauthorized(new Answer("Username or password is wrong!"));
             }
             catch
             {
-                return StatusCode(500, new Answer("Error while creating new user"));
+                return StatusCode(500, new Answer("Error while login"));
+            }
+        }
+
+        [HttpPost]
+        [Route("users/refreshToken")]
+        public async Task<ActionResult<LoginResponse>> RefreshToken(Refresh refresh)
+        {
+            try
+            {
+                var userId = await userService.ValidateRefreshToken(refresh);
+                if (userId != "")
+                {
+                    var user = await userService.GetUser(userId);
+                    var (jwt, refreshToken) = await userService.GenerateJwt(user);
+                    return Ok(new LoginResponse { Jwt = jwt, RefreshToken = refreshToken.Token });
+                }
+                return Unauthorized(new Answer("Something is wrong with the tokens"));
+            }
+            catch
+            {
+                return StatusCode(500, new Answer("Error refreshing token"));
             }
         }
     }

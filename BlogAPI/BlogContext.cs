@@ -1,4 +1,5 @@
 ﻿using BlogAPI.Models;
+using BlogAPI.Models.Database;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -11,6 +12,7 @@ namespace BlogAPI
         public DbSet<Comment> Comments { get; set; }
         public new DbSet<User> Users { get; set; }
         public DbSet<Topic> Topics { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
 
         public BlogContext(DbContextOptions<BlogContext> options) : base(options) { }
