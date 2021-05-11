@@ -53,15 +53,16 @@ namespace BlogAPI.Controllers
         [HttpGet]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
         [Route("users")]
-        public async Task<ActionResult<List<UserWithRolesResponse>>> GetUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 9)
+        public async Task<ActionResult<UsersResponse>> GetUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 9)
         {
             try
             {
                 var users = await userService.GetUsers(page, pageSize);
-                var result = await Task.WhenAll(users.Select(async x => new UserWithRolesResponse { User = x, Roles = new RolesResponse { Roles = await userService.GetRoles(x.Id) } }));
+                var usersWithRoles = users.Select(async x => new UserWithRolesResponse { User = x, Roles = new RolesResponse { Roles = await userService.GetRoles(x.Id) } }).Select(x => x.Result).ToList();
+                var result = new UsersResponse { TotalCount = await userService.GetUserCount(), Users = usersWithRoles };
                 return Ok(result);
             }
-            catch
+            catch (Exception)
             {
                 return StatusCode(500, new Answer("Error while getting users"));
             }
@@ -111,11 +112,11 @@ namespace BlogAPI.Controllers
                     return NotFound(new Answer($"No user with id {id} was found"));
 
                 var userRoles = await userManager.GetRolesAsync(user);
-                var intersect = userRoles.Intersect(roles.Roles).ToList();
-                var res = await userManager.AddToRolesAsync(user, roles.Roles.Except(intersect));
-                var res2 = await userManager.RemoveFromRolesAsync(user, userRoles.Except(intersect));
+                var intersect = userRoles.Intersect(roles.Roles).ToList(); //roles that still remain
+                var res = await userManager.AddToRolesAsync(user, roles.Roles.Except(intersect)); //add to new roles (only ones that user in not in yet)
+                var res2 = await userManager.RemoveFromRolesAsync(user, userRoles.Except(intersect)); //remove from old roles
 
-                if (res.Succeeded)
+                if (res.Succeeded && res2.Succeeded)
                     return CreatedAtAction("GetUserRoles", new { id = user.Id }, new RolesResponse { Roles = (await userManager.GetRolesAsync(user)).ToList() });
 
                 var errors = res.Errors.Concat(res2.Errors);
@@ -202,7 +203,7 @@ namespace BlogAPI.Controllers
                 var user = await userService.GetUserByNameOrMail(login.User);
                 if (user is not null && await userManager.CheckPasswordAsync(user, login.Password))
                 {
-                    var (jwt, refreshToken) = await userService.GenerateJwt(user);
+                    var (jwt, refreshToken) = await userService.GetJwtAndRefreshToken(user);
                     return Ok(new LoginResponse { Jwt = jwt, RefreshToken = refreshToken.Token });
                 }
                 return Unauthorized(new Answer("Username or password is wrong!"));
@@ -223,7 +224,7 @@ namespace BlogAPI.Controllers
                 if (userId != "")
                 {
                     var user = await userService.GetUser(userId);
-                    var (jwt, refreshToken) = await userService.GenerateJwt(user);
+                    var (jwt, refreshToken) = await userService.GetJwtAndRefreshToken(user);
                     return Ok(new LoginResponse { Jwt = jwt, RefreshToken = refreshToken.Token });
                 }
                 return Unauthorized(new Answer("Something is wrong with the tokens"));

@@ -14,7 +14,14 @@ namespace BlogAPI
     public static class Extensions
     {
         //from https://stackoverflow.com/a/53476825/14742712
+        /// <summary>
+        /// If the condition is met, the function will be applied
+        /// </summary>
         public static IQueryable<T> If<T>(this IQueryable<T> source, bool condition, Func<IQueryable<T>, IQueryable<T>> transform) => condition ? transform(source) : source;
+        
+        /// <summary>
+        /// Applies the fuction to the IQueryable
+        /// </summary>
         public static IQueryable<T> Apply<T>(this IQueryable<T> source, Func<IQueryable<T>, IQueryable<T>> transform) =>transform(source);
 
         public static IQueryable<Comment> IncludeLikes(this IQueryable<Comment> source)
@@ -27,6 +34,7 @@ namespace BlogAPI
                 Likes = x.LikedBy.Count,
                 Text = x.Text,
             });
+
         public static IQueryable<UserResponse> SelectResponse(this IQueryable<User> source)
             => source.Select(x => new UserResponse
             {
@@ -58,29 +66,23 @@ namespace BlogAPI
                 Text = x.Text
             });
         
-        public static bool HasNullProperty(this object o) => o.GetType().GetProperties().Any(x => x.GetValue(o) is null);
 
         public static string GetUserID(this ClaimsPrincipal user) => user.Claims.FirstOrDefault(x => x.Type == "id")?.Value ?? "";
 
         public static List<string> GetErrors(this ModelStateDictionary modelState)
             => modelState.Values.SelectMany(x => x.Errors.Select(x => x.ErrorMessage)).ToList();
 
-        public static string GetDescription(this Enum value)
+        public static string GetDescription(this Enum value) //from stackoverflow with minor changes
         {
-            Type type = value.GetType();
-            string name = Enum.GetName(type, value);
-            if (name != null)
-            {
-                FieldInfo field = type.GetField(name);
-                if (field != null)
-                {
-                    if (Attribute.GetCustomAttribute(field,
-                        typeof(DescriptionAttribute)) is DescriptionAttribute attr)
-                    {
-                        return attr.Description;
-                    }
-                }
-            }
+            var type = value.GetType();
+            var name = Enum.GetName(type, value);
+            if (name == null)
+                return null;
+            var field = type.GetField(name);
+            if (field == null)
+                return null;
+            if (Attribute.GetCustomAttribute(field, typeof(DescriptionAttribute)) is DescriptionAttribute attr)
+                return attr.Description;
             return null;
         }
     }

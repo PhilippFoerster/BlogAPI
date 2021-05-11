@@ -58,25 +58,25 @@ namespace BlogAPI.Services
         public async Task<Comment> LikeComment(Comment comment, string userId, bool liked)
         {
             var user = new User { Id = userId };
-            var hasLiked = await blogContext.Comments.AnyAsync(x => x.Id == comment.Id && x.LikedBy.Any(x => x.Id == user.Id));
+            var hasLiked = await blogContext.Comments.AnyAsync(x => x.Id == comment.Id && x.LikedBy.Any(x => x.Id == user.Id)); //Check if user has already liked the comment
             Action action = null;
-            if (!hasLiked && liked)
+            if (!hasLiked && liked) //can like
             {
                 action = () => comment.LikedBy.Add(user);
                 comment.LikedBy = new List<User>();
                 comment.Likes++;
             }
-            else if (hasLiked && !liked)
+            else if (hasLiked && !liked) //can dislike
             {
                 action = () => comment.LikedBy.Remove(user);
                 comment.LikedBy = new List<User> { user };
                 comment.Likes--;
             }
-            if (action is null)
+            if (action is null) //no change, comment is already liked or disliked
                 return null;
-            blogContext.Attach(user);
+            blogContext.Attach(user); //in order to not load user, attach it
             blogContext.Attach(comment);
-            action();
+            action(); //The list has one or no user, now delete or add user to make sure EF Core tracks the change
             await blogContext.SaveChangesAsync();
             return comment;
         }

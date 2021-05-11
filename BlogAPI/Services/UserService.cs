@@ -34,30 +34,42 @@ namespace BlogAPI.Services
             this.tokenValidationParameters = tokenValidationParameters;
         }
 
+
+        public async Task<int> GetUserCount() => await blogContext.Users.CountAsync();
+
         public async Task<List<UserResponse>> GetUsers(int page, int pageSize) => await blogContext.Users.SelectResponse().Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
-        public async Task<UserResponse> GetUserResponse(string id) => await blogContext.Users.Include(x => x.Interests).SelectResponse().FirstOrDefaultAsync(x => x.Id == id);
+        public async Task<UserResponse> GetUserResponse(string id) => await blogContext.Users.SelectResponse().FirstOrDefaultAsync(x => x.Id == id);
 
         public async Task<User> GetUser(string id, Func<IQueryable<User>, IQueryable<User>> func) => await blogContext.Users.Apply(func).FirstOrDefaultAsync(x => x.Id == id);
+        
         public async Task<User> GetUser(string id) => await blogContext.Users.FirstOrDefaultAsync(x => x.Id == id);
+        
         public async Task<User> GetUserByNameOrMail(string user) => await blogContext.Users.FirstOrDefaultAsync(x => x.UserName == user || x.Email == user);
 
         public async Task UpdateTopics(User user, List<Topic> oldTopics, List<Topic> newTopics)
         {
+            //user.Interests contains current interests of user 
             var comparer = new TopicComparer();
-            user.Interests = oldTopics.Intersect(newTopics, comparer).ToList();
-            var existing = await blogContext.Topics.Where(x => newTopics.Contains(x)).ToListAsync();
-            var notExisting = newTopics.Except(existing, comparer).ToList();
-            var added = existing.Concat(notExisting).Except(oldTopics, comparer);
+            user.Interests = oldTopics.Intersect(newTopics, comparer).ToList(); //intersecting will delete the ones that should get removed
+            var existing = await blogContext.Topics.Where(x => newTopics.Contains(x)).ToListAsync(); //topics that already exist in DB
+            var notExisting = newTopics.Except(existing, comparer).ToList(); 
+            var added = existing.Concat(notExisting).Except(oldTopics, comparer); //added = existing Topics (tracked from DB) + new ones (without tracking) without old ones
 
             user.Interests.AddRange(added);
             await blogContext.SaveChangesAsync();
         }
 
         public async Task<List<Topic>> GetInterests(string userId) => await blogContext.Topics.Where(x => x.InterestedUser.Contains(new User { Id = userId })).ToListAsync();
+        
         public async Task<List<string>> GetRoles(string userId) => (await userManager.GetRolesAsync(new User { Id = userId })).ToList();
 
-        public async Task<(string, RefreshToken)> GenerateJwt(IdentityUser user)
+        /// <summary>
+        /// Get a Jwt and refresh token for a user
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns></returns>
+        public async Task<(string, RefreshToken)> GetJwtAndRefreshToken(IdentityUser user)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature);
@@ -81,7 +93,7 @@ namespace BlogAPI.Services
             var refreshToken = new RefreshToken
             {
                 User = user,
-                ExpirationTime = DateTime.Now.AddMonths(1),
+                ExpirationTime = DateTime.Now.AddDays(1),
                 Jwt = token.Id
             };
 
@@ -91,6 +103,11 @@ namespace BlogAPI.Services
             return (new JwtSecurityTokenHandler().WriteToken(token), refreshToken);
         }
 
+        /// <summary>
+        /// Refresh a Jwt token
+        /// </summary>
+        /// <param name="refresh"></param>
+        /// <returns></returns>
         public async Task<string> ValidateRefreshToken(Refresh refresh)
         {
             ClaimsPrincipal claims;
@@ -104,10 +121,10 @@ namespace BlogAPI.Services
                 return "";
             }
             var token = await blogContext.RefreshTokens.FindAsync(refresh.RefreshToken);
-            if (token is null || jwt.Id != token.Jwt)
+            if (token is null || jwt.Id != token.Jwt) //check if refresh token exsists and if it is liked to the old jwt
                 return "";
             blogContext.RefreshTokens.Remove(token);
-            await blogContext.SaveChangesAsync();
+            await blogContext.SaveChangesAsync(); //remove used token
             if (token.ExpirationTime < DateTime.Now)
                 return "";
             return claims.GetUserID();

@@ -18,7 +18,9 @@ namespace BlogAPI
             this.userManager = userManager;
             this.roleManager = roleManager;
         }
-
+        /// <summary>
+        /// Init roles
+        /// </summary>
         public async Task InitRoles()
         {
             if (!await roleManager.RoleExistsAsync("admin"))
@@ -29,6 +31,9 @@ namespace BlogAPI
                 await roleManager.CreateAsync(new IdentityRole("author"));
         }
 
+        /// <summary>
+        /// Init Admin user and assign roles
+        /// </summary>
         public async Task InitAdmin()
         {
             if (await userManager.FindByNameAsync("admin") is null)

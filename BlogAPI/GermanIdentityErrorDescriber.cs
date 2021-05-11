@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Identity;
 
 namespace BlogAPI
 {
+    /// <summary>
+    /// Deutsche Übersetzungen für Fehlermeldungen
+    /// </summary>
     public class GermanIdentityErrorDescriber : IdentityErrorDescriber
     {
         public override IdentityError DuplicateEmail(string email)

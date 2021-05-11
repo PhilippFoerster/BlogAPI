@@ -20,23 +20,21 @@ namespace BlogAPI.Services
             this.blogContext = blogContext;
             this.userService = userService;
         }
-        //eyJhbGciOiJodHRwOi8vd3d3LnczLm9yZy8yMDAxLzA0L3htbGRzaWctbW9yZSNobWFjLXNoYTI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBZG1pbiIsImVtYWlsIjoiYWRtaW5AYWRtaW4uZGUiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJhZG1pbiIsImlkIjoiOGYzYjkzNTctNTRjNS00Mzc3LWI1YWQtMWNlZjBkMGIxMzZiIiwiZXhwIjoxNjE4OTU0NTI0LCJpc3MiOiJUZXN0LmNvbSIsImF1ZCI6IlRlc3QuY29tIn0.dqChmnd-HUXGywQX6cvGBsvNdPpc9YuHv96MoKGTt1Y
+
         public async Task InsertArticle(Article article)
         {
             blogContext.Attach(article.CreatedBy);
-            var existing = await blogContext.Topics.Where(x => article.Topics.Contains(x)).AsNoTracking().ToListAsync();
-            article.Topics.Intersect(existing, new TopicComparer()).ToList().ForEach(x => blogContext.Topics.Attach(x));
-            //article.Topics.Where(x => blogContext.Topics.Any(t => x.Name == t.Name)).ToList().ForEach(x => blogContext.Topics.Attach(x));
+            var existing = await blogContext.Topics.Where(x => article.Topics.Contains(x)).AsNoTracking().ToListAsync(); //get existing topics in db
+            article.Topics.Intersect(existing, new TopicComparer()).ToList().ForEach(x => blogContext.Topics.Attach(x)); //attach the not tracked topic from the request, not the one loaded from db
             await blogContext.Articles.AddAsync(article);
             await blogContext.SaveChangesAsync();
         }
 
         public async Task<bool> ArticleExists(int id) => await blogContext.Articles.AnyAsync(x => x.Id == id);
 
-
         public async Task<List<ArticleResponse>> GetTopArticleResponses()
             => await blogContext.Articles
-                .OrderByDescending(x => x.Comments.Count / (1 + EF.Functions.DateDiffDay(DateTime.Now, x.CreatedAt) / 30))
+                .OrderByDescending(x => x.Comments.Count / (1 + EF.Functions.DateDiffDay(DateTime.Now, x.CreatedAt) / 30)) //Algorithm to get "trending" articles
                 .ThenByDescending(x => x.CreatedAt)
                 .SelectResponse()
                 .Take(4)
@@ -62,13 +60,11 @@ namespace BlogAPI.Services
             return res;
         }
 
-        public async Task<Article> GetArticle(int id, Func<IQueryable<Article>, IQueryable<Article>> func) => await blogContext.Articles.Apply(func).FirstOrDefaultAsync(x => x.Id == id);
         public async Task<Article> GetArticle(int id) => await blogContext.Articles.FirstOrDefaultAsync(x => x.Id == id);
 
         public async Task<User> GetAuthor(Article article) 
             => await blogContext.Users.Where(x => x.Id == blogContext.Articles.Find(article.Id).CreatedById).FirstOrDefaultAsync();
         
-
         public async Task<ArticleResponse> GetArticleResponse(int id)
             => await blogContext.Articles.Include(x => x.CreatedBy)
                 .Include(x => x.Topics)
