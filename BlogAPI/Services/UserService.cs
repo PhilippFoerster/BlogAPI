@@ -67,9 +67,7 @@ namespace BlogAPI.Services
         /// <summary>
         /// Get a Jwt and refresh token for a user
         /// </summary>
-        /// <param name="user"></param>
-        /// <returns></returns>
-        public async Task<(string, RefreshToken)> GetJwtAndRefreshToken(IdentityUser user)
+        public async Task<(string, RefreshToken)> GetJwtAndRefreshToken(User user)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature);

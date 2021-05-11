@@ -1,5 +1,6 @@
 ﻿using BlogAPI.Models;
 using BlogAPI.Models.Database;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -42,6 +43,10 @@ namespace BlogAPI
             builder.Entity<Article>()
                 .HasMany(x => x.Topics)
                 .WithMany(x => x.Articles);
+            builder.Entity<User>()
+                .HasMany(x => x.RefreshTokens)
+                .WithOne(x => x.User)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

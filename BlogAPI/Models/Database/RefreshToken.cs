@@ -18,6 +18,6 @@ namespace BlogAPI.Models.Database
 
         public DateTime ExpirationTime { get; set; }
 
-        public IdentityUser User { get; set; }
+        public User User { get; set; }
     }
 }

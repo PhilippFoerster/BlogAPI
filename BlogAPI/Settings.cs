@@ -8,7 +8,7 @@ namespace BlogAPI
     public static class Settings
     {
         public const int CommentTextMaxLength = 2000;
-        public const int ArticleTextMaxLength = 2000;
+        public const int ArticleTextMaxLength = 20000;
         public const int ArticleTextMinLength = 50;
         public const int ArticleCaptionMinLength = 5;
     }

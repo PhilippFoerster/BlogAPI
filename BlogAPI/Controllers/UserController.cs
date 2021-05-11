@@ -186,7 +186,7 @@ namespace BlogAPI.Controllers
                     return NoContent();
                 return BadRequest(new Answer(res.Errors.Select(x => x.Description).ToList()));
             }
-            catch
+            catch(Exception)
             {
                 return StatusCode(500, new Answer("Error while deleting user"));
             }

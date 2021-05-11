@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using BlogAPI.Models.Database;
 using Microsoft.AspNetCore.Identity;
 
 namespace BlogAPI.Models
@@ -8,6 +9,8 @@ namespace BlogAPI.Models
         public List<Comment> LikedComments { get; set; }
 
         public List<Topic> Interests { get; set; }
+
+        public List<RefreshToken> RefreshTokens { get; set; }
 
         public UserResponse GetUserResponse() => new() { Email = Email, Id = Id, Username = UserName };
     }
