@@ -21,7 +21,6 @@ namespace BlogAPI.Models
         [Required]
         public int ArticleId { get; set; }
 
-        [Required]
         [JsonIgnore]
         public string CreatedById { get; set; }
 

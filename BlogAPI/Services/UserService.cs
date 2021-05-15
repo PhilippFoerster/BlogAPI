@@ -127,5 +127,13 @@ namespace BlogAPI.Services
                 return "";
             return claims.GetUserID();
         }
+
+        public async Task DeleteUserReferences(User user)
+        {
+            blogContext.Articles.RemoveRange(user.Articles);
+            blogContext.Comments.RemoveRange(user.Comments);
+            user.LikedComments = new List<Comment>();
+            await blogContext.SaveChangesAsync();
+        }
     }
 }

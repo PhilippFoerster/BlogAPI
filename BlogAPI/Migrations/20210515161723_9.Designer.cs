@@ -4,14 +4,16 @@ using BlogAPI;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace BlogAPI.Migrations
 {
     [DbContext(typeof(BlogContext))]
-    partial class BlogContextModelSnapshot : ModelSnapshot
+    [Migration("20210515161723_9")]
+    partial class _9
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -373,13 +375,13 @@ namespace BlogAPI.Migrations
                     b.HasOne("BlogAPI.Models.Article", null)
                         .WithMany()
                         .HasForeignKey("ArticlesId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("BlogAPI.Models.Topic", null)
                         .WithMany()
                         .HasForeignKey("TopicsName")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 
@@ -388,7 +390,7 @@ namespace BlogAPI.Migrations
                     b.HasOne("BlogAPI.Models.User", "CreatedBy")
                         .WithMany("Articles")
                         .HasForeignKey("CreatedById")
-                        .OnDelete(DeleteBehavior.NoAction);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("CreatedBy");
                 });
@@ -398,13 +400,12 @@ namespace BlogAPI.Migrations
                     b.HasOne("BlogAPI.Models.Article", "Article")
                         .WithMany("Comments")
                         .HasForeignKey("ArticleId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("BlogAPI.Models.User", "CreatedBy")
                         .WithMany("Comments")
-                        .HasForeignKey("CreatedById")
-                        .OnDelete(DeleteBehavior.NoAction);
+                        .HasForeignKey("CreatedById");
 
                     b.Navigation("Article");
 
@@ -416,7 +417,7 @@ namespace BlogAPI.Migrations
                     b.HasOne("BlogAPI.Models.User", "User")
                         .WithMany("RefreshTokens")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("User");
                 });
@@ -492,13 +493,13 @@ namespace BlogAPI.Migrations
                     b.HasOne("BlogAPI.Models.User", null)
                         .WithMany()
                         .HasForeignKey("InterestedUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("BlogAPI.Models.Topic", null)
                         .WithMany()
                         .HasForeignKey("InterestsName")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 

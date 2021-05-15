@@ -26,9 +26,10 @@ namespace BlogAPI.Controllers
 
         [HttpPost]
         [Route("articles")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin, author")]
+        [Auth("admin","author")]
         public async Task<ActionResult<ArticleResponse>> PostArticle(NewArticle newArticle)
         {
+            var test = User.Claims;
             if (!ModelState.IsValid)
                 return BadRequest(new Answer(ModelState.GetErrors(), Type.InvalidModel));
             try
@@ -89,7 +90,7 @@ namespace BlogAPI.Controllers
 
         [HttpPut]
         [Route("articles")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin, author")]
+        [Auth("admin", "author")]
         public async Task<ActionResult<ArticleResponse>> ModifyArticle(UpdateArticle updateArticle)
         {
             if (!ModelState.IsValid)
@@ -118,7 +119,7 @@ namespace BlogAPI.Controllers
 
         [HttpDelete]
         [Route("articles/{id}")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
+        [Auth("admin")]
         public async Task<IActionResult> DeleteArticle(int id)
         {
             try

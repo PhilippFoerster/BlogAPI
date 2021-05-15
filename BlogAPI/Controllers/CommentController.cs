@@ -34,7 +34,7 @@ namespace BlogAPI.Controllers
 
         [HttpPost]
         [Route("comments")]
-        [Authorize]
+        [Auth]
         public async Task<ActionResult<CommentResponse>> PostComment(NewComment newComment)
         {
             if (!ModelState.IsValid)
@@ -103,7 +103,7 @@ namespace BlogAPI.Controllers
 
         [HttpDelete]
         [Route("comments/{id}")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "author, admin")]
+        [Auth("admin", "author")]
         public async Task<IActionResult> DeleteComment(int id)
         {
             try
@@ -122,7 +122,7 @@ namespace BlogAPI.Controllers
 
         [HttpPost]
         [Route("comments/like")]
-        [Authorize]
+        [Auth]
         public async Task<ActionResult<CommentResponse>> LikeComment(LikeComment like)
         {
             if (!ModelState.IsValid)

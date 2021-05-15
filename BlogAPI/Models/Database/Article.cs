@@ -27,10 +27,8 @@ namespace BlogAPI.Models
         [Required]
         public DateTime CreatedAt { get; set; }
 
-        [Required]
-        [JsonIgnore]
         public string CreatedById { get; set; }
-
+        
         public User CreatedBy { get; set; }
 
         public List<Comment> Comments { get; set; }

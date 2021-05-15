@@ -1,4 +1,5 @@
-﻿using BlogAPI.Models;
+﻿using System.Linq;
+using BlogAPI.Models;
 using BlogAPI.Models.Database;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -27,26 +28,30 @@ namespace BlogAPI
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
-            builder.Entity<Comment>()
-                .HasOne(x => x.CreatedBy)
-                .WithMany()
+            builder.Entity<User>()
+                .HasMany(x => x.Comments)
+                .WithOne(x => x.CreatedBy)
                 .HasForeignKey(x => x.CreatedById)
                 .OnDelete(DeleteBehavior.NoAction);
-            builder.Entity<Article>()
-                .HasOne(x => x.CreatedBy)
-                .WithMany()
+            builder.Entity<User>()
+                .HasMany(x => x.Articles)
+                .WithOne(x => x.CreatedBy)
                 .HasForeignKey(x => x.CreatedById)
                 .OnDelete(DeleteBehavior.NoAction);
             builder.Entity<User>()
                 .HasMany(x => x.LikedComments)
                 .WithMany(x => x.LikedBy);
-            builder.Entity<Article>()
-                .HasMany(x => x.Topics)
-                .WithMany(x => x.Articles);
             builder.Entity<User>()
                 .HasMany(x => x.RefreshTokens)
                 .WithOne(x => x.User)
                 .OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<Article>()
+                .HasMany(x => x.Comments)
+                .WithOne(x => x.Article)
+                .OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<Article>()
+                .HasMany(x => x.Topics)
+                .WithMany(x => x.Articles);
         }
     }
 }

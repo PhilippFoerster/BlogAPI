@@ -51,7 +51,7 @@ namespace BlogAPI.Controllers
         }
 
         [HttpGet]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
+        [Auth("admin")]
         [Route("users")]
         public async Task<ActionResult<UsersResponse>> GetUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 9)
         {
@@ -100,7 +100,7 @@ namespace BlogAPI.Controllers
 
         [HttpPost]
         [Route("users/{id}/roles")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
+        [Auth("admin")]
         public async Task<ActionResult<RolesResponse>> UpdateRoles(string id, UpdateRoles roles)
         {
             if (!ModelState.IsValid)
@@ -145,7 +145,7 @@ namespace BlogAPI.Controllers
 
         [HttpPost]
         [Route("users/interests")]
-        [Authorize]
+        [Auth]
         public async Task<ActionResult<InterestsResponse>> UpdateInterests(UpdateInterests interests)
         {
             if (!ModelState.IsValid)
@@ -173,20 +173,24 @@ namespace BlogAPI.Controllers
 
         [HttpDelete]
         [Route("users/{id}")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
+        [Auth("admin")]
         public async Task<IActionResult> DeleteUser(string id)
         {
             try
             {
-                var user = await userManager.FindByIdAsync(id);
+                var user = await userService.GetUser(id, x =>
+                    x.Include(x => x.LikedComments)
+                        .Include(x => x.Comments)
+                        .Include(x => x.Articles));
                 if (user is null)
                     return NotFound(new Answer($"No user with id {id} was found"));
+                await userService.DeleteUserReferences(user);
                 var res = await userManager.DeleteAsync(user);
                 if (res.Succeeded)
                     return NoContent();
                 return BadRequest(new Answer(res.Errors.Select(x => x.Description).ToList()));
             }
-            catch(Exception)
+            catch (Exception e)
             {
                 return StatusCode(500, new Answer("Error while deleting user"));
             }

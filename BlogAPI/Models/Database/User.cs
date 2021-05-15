@@ -12,6 +12,10 @@ namespace BlogAPI.Models
 
         public List<RefreshToken> RefreshTokens { get; set; }
 
+        public List<Article> Articles { get; set; }
+
+        public List<Comment> Comments { get; set; }
+
         public UserResponse GetUserResponse() => new() { Email = Email, Id = Id, Username = UserName };
     }
 }
