@@ -39,6 +39,7 @@ namespace BlogAPI.Controllers
             {
                 var user = new User { Email = newUser.Mail, UserName = newUser.Username };
                 var res = await userManager.CreateAsync(user, newUser.Password);
+                await userManager.AddToRoleAsync(user, "user");
                 if (res.Succeeded)
                     return CreatedAtAction("GetUser", new { id = user.Id }, user.GetUserResponse());
                 return BadRequest(new Answer(res.Errors.Select(x => x.Description).ToList()));
@@ -51,14 +52,14 @@ namespace BlogAPI.Controllers
         }
 
         [HttpGet]
-        [Auth("admin")]
         [Route("users")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
         public async Task<ActionResult<UsersResponse>> GetUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 9)
         {
             try
             {
                 var users = await userService.GetUsers(page, pageSize);
-                var usersWithRoles = users.Select(async x => new UserWithRolesResponse { User = x, Roles = new RolesResponse { Roles = await userService.GetRoles(x.Id) } }).Select(x => x.Result).ToList();
+                var usersWithRoles = users.Select(async x => new UserWithRolesResponse { User = x, Role = await userService.GetRoles(x.Id) }).Select(x => x.Result).ToList();
                 var result = new UsersResponse { TotalCount = await userService.GetUserCount(), Users = usersWithRoles };
                 return Ok(result);
             }
@@ -84,24 +85,24 @@ namespace BlogAPI.Controllers
         }
 
         [HttpGet]
-        [Route("users/{id}/roles")]
+        [Route("users/{id}/role")]
         public async Task<ActionResult<RolesResponse>> GetUserRoles(string id)
         {
             try
             {
-                var roles = await userService.GetRoles(id);
-                return Ok(new RolesResponse { Roles = roles });
+                var role = await userService.GetRoles(id);
+                return Ok(new RolesResponse { Role = role });
             }
             catch
             {
-                return StatusCode(500, new Answer($"Error while getting roles of user {id}"));
+                return StatusCode(500, new Answer($"Error while getting role of user {id}"));
             }
         }
 
         [HttpPost]
-        [Route("users/{id}/roles")]
-        [Auth("admin")]
-        public async Task<ActionResult<RolesResponse>> UpdateRoles(string id, UpdateRoles roles)
+        [Route("users/{id}/role")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
+        public async Task<ActionResult<RolesResponse>> UpdateRoles(string id, UpdateRoles role)
         {
             if (!ModelState.IsValid)
                 return BadRequest(new Answer(ModelState.GetErrors(), Type.InvalidModel));
@@ -111,18 +112,20 @@ namespace BlogAPI.Controllers
                 if (user is null)
                     return NotFound(new Answer($"No user with id {id} was found"));
 
-                var userRoles = await userManager.GetRolesAsync(user);
-                var intersect = userRoles.Intersect(roles.Roles).ToList(); //roles that still remain
-                var res = await userManager.AddToRolesAsync(user, roles.Roles.Except(intersect)); //add to new roles (only ones that user in not in yet)
-                var res2 = await userManager.RemoveFromRolesAsync(user, userRoles.Except(intersect)); //remove from old roles
+                var userRole = (await userManager.GetRolesAsync(user)).SingleOrDefault();
+                if (userRole == role.Role)
+                    return StatusCode(304);
+                var res = await userManager.RemoveFromRoleAsync(user, userRole);
+                var res2 = await userManager.AddToRoleAsync(user, role.Role);
 
                 if (res.Succeeded && res2.Succeeded)
-                    return CreatedAtAction("GetUserRoles", new { id = user.Id }, new RolesResponse { Roles = (await userManager.GetRolesAsync(user)).ToList() });
+                    return CreatedAtAction("GetUserRoles", new { id = user.Id }, new RolesResponse { Role = (await userService.GetRoles(user.Id)) });
 
                 var errors = res.Errors.Concat(res2.Errors);
                 return BadRequest(new Answer(errors.Select(x => x.Description).ToList()));
+
             }
-            catch
+            catch(Exception e)
             {
                 return StatusCode(500, new Answer($"Error while modifying user {id}"));
             }
@@ -145,7 +148,7 @@ namespace BlogAPI.Controllers
 
         [HttpPost]
         [Route("users/interests")]
-        [Auth]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<ActionResult<InterestsResponse>> UpdateInterests(UpdateInterests interests)
         {
             if (!ModelState.IsValid)
@@ -173,7 +176,7 @@ namespace BlogAPI.Controllers
 
         [HttpDelete]
         [Route("users/{id}")]
-        [Auth("admin")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
         public async Task<IActionResult> DeleteUser(string id)
         {
             try
@@ -238,5 +241,22 @@ namespace BlogAPI.Controllers
                 return StatusCode(500, new Answer("Error refreshing token"));
             }
         }
+
+        [HttpGet]
+        [Route("users/logout")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> Logout()
+        {
+            try
+            {
+                await userService.DeleteRefreshTokensFromUser(User.GetUserID());
+                return NoContent();
+            }
+            catch
+            {
+                return StatusCode(500, new Answer("Error while logging out"));
+            }
+        }
+
     }
 }

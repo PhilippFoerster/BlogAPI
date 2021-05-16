@@ -15,10 +15,7 @@ namespace BlogAPI
         private readonly string[] allowedRoles;
         public Auth(params string[] roles)
         {
-            if (roles is null)
-                allowedRoles = new[] {"user"};
-            else
-                allowedRoles = roles;
+            allowedRoles = roles.Length == 0 ? new[] {"user"} : roles;
         }
 
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
@@ -27,7 +24,7 @@ namespace BlogAPI
                 x.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role");
             if (roles is null)
                 context.Result = new UnauthorizedResult();
-            else if (!allowedRoles.Any(x => roles.Value.Contains(x)))
+            else if (!allowedRoles.Contains("user") && !allowedRoles.Any(x => roles.Value.Contains(x)))
                 context.Result = new UnauthorizedResult();
             else
                 await next();

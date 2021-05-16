@@ -26,7 +26,7 @@ namespace BlogAPI.Controllers
 
         [HttpPost]
         [Route("articles")]
-        [Auth("admin","author")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "author, admin")]
         public async Task<ActionResult<ArticleResponse>> PostArticle(NewArticle newArticle)
         {
             var test = User.Claims;
@@ -90,7 +90,7 @@ namespace BlogAPI.Controllers
 
         [HttpPut]
         [Route("articles")]
-        [Auth("admin", "author")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "author, admin")]
         public async Task<ActionResult<ArticleResponse>> ModifyArticle(UpdateArticle updateArticle)
         {
             if (!ModelState.IsValid)
@@ -119,7 +119,7 @@ namespace BlogAPI.Controllers
 
         [HttpDelete]
         [Route("articles/{id}")]
-        [Auth("admin")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
         public async Task<IActionResult> DeleteArticle(int id)
         {
             try

@@ -62,7 +62,7 @@ namespace BlogAPI.Services
 
         public async Task<List<Topic>> GetInterests(string userId) => await blogContext.Topics.Where(x => x.InterestedUser.Contains(new User { Id = userId })).ToListAsync();
         
-        public async Task<List<string>> GetRoles(string userId) => (await userManager.GetRolesAsync(new User { Id = userId })).ToList();
+        public async Task<string> GetRoles(string userId) => (await userManager.GetRolesAsync(new User { Id = userId })).SingleOrDefault();
 
         /// <summary>
         /// Get a Jwt and refresh token for a user
@@ -134,6 +134,11 @@ namespace BlogAPI.Services
             blogContext.Comments.RemoveRange(user.Comments);
             user.LikedComments = new List<Comment>();
             await blogContext.SaveChangesAsync();
+        }
+
+        public async Task DeleteRefreshTokensFromUser(string id)
+        {
+            await blogContext.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM dbo.RefreshTokens WHERE UserId = {id}"); //To not load the refresh tokens before deleting them
         }
     }
 }

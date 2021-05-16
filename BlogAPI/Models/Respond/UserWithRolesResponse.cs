@@ -9,6 +9,6 @@ namespace BlogAPI.Models.Respond
     {
         public UserResponse User { get; set; }
 
-        public RolesResponse Roles { get; set; }
+        public string Role { get; set; }
     }
 }
